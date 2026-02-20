@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+
+/* Print styles — hide interactive chrome, show content only */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  input,
+  textarea,
+  select {
+    border: none !important;
+    background: transparent !important;
+    resize: none;
+    pointer-events: none;
+  }
+}
