@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Document body -->
+  <rect x="4" y="2" width="24" height="28" rx="3" fill="#2563eb"/>
+  <!-- Title bar line -->
+  <rect x="8" y="8" width="16" height="2.5" rx="1.25" fill="white" opacity="0.95"/>
+  <!-- Row 1: checkbox checked + line -->
+  <rect x="8" y="13.5" width="4.5" height="4.5" rx="1" fill="white" opacity="0.95"/>
+  <path d="M9 16l1.2 1.2 2.2-2.2" stroke="#2563eb" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect x="14" y="15" width="10" height="2" rx="1" fill="white" opacity="0.6"/>
+  <!-- Row 2: checkbox unchecked + line -->
+  <rect x="8" y="20.5" width="4.5" height="4.5" rx="1" fill="white" opacity="0.4"/>
+  <rect x="14" y="22" width="7" height="2" rx="1" fill="white" opacity="0.6"/>
+</svg>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { useReviewStore } from '../stores/reviewStore'
@@ -12,6 +12,7 @@ import type {
   RecommendationItem,
   OutOfScopeItem,
   StatusOption,
+  RecommendationStatus,
   SavedDocument,
 } from '../types'
 
@@ -34,13 +35,28 @@ const CodeReview = () => {
   const [createdAt, setCreatedAt] = useState<string>('')
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  const hasInitializedRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requirementsSectionRef = useRef<HTMLDivElement>(null)
+  const gapsSectionRef = useRef<HTMLDivElement>(null)
+  const recommendationsSectionRef = useRef<HTMLDivElement>(null)
+
+  const focusLastInput = (ref: React.RefObject<HTMLDivElement | null>) => {
+    setTimeout(() => {
+      const inputs =
+        ref.current?.querySelectorAll<HTMLInputElement>('input[type="text"]')
+      inputs?.[inputs.length - 1]?.focus()
+    }, 0)
+  }
 
   useEffect(() => {
     if (isNew) {
       setDocId(uuidv4())
       setCreatedAt(new Date().toISOString())
-      setIsDirty(true)
+      hasInitializedRef.current = true
       return
     }
     if (!id) return
@@ -54,6 +70,7 @@ const CodeReview = () => {
         setDocId(doc.id)
         setCreatedAt(doc.createdAt)
         setIsDirty(false)
+        hasInitializedRef.current = true
       })
       .catch(() => setLoadError('Could not load review.'))
   }, [id, isNew])
@@ -63,8 +80,9 @@ const CodeReview = () => {
     setIsDirty(true)
   }, [])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true)
+    setSaveError(null)
     try {
       const now = new Date().toISOString()
       const doc: SavedDocument = {
@@ -84,20 +102,32 @@ const CodeReview = () => {
         setIsDirty(false)
       }
     } catch {
-      alert('Failed to save. Is the local server running?')
+      setSaveError('Save failed')
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [isNew, docId, form, createdAt, saveDocument, updateDocument, navigate])
+
+  // Debounced auto-save: fires 1.5s after any form change
+  useEffect(() => {
+    if (!hasInitializedRef.current || !isDirty) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(handleSave, 1500)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [handleSave, isDirty])
 
   // Requirements
-  const addRequirement = () =>
+  const addRequirement = (focusNew = false) => {
     update({
       requirements: [
         ...form.requirements,
         { id: uuidv4(), status: 'INCOMPLETE', description: '' },
       ],
     })
+    if (focusNew) focusLastInput(requirementsSectionRef)
+  }
   const updateRequirement = (id: string, patch: Partial<RequirementItem>) =>
     update({
       requirements: form.requirements.map(r =>
@@ -107,22 +137,36 @@ const CodeReview = () => {
   const removeRequirement = (id: string) =>
     update({ requirements: form.requirements.filter(r => r.id !== id) })
 
+  const cycleRecStatus = (
+    current: RecommendationStatus | undefined
+  ): RecommendationStatus => {
+    if (!current || current === 'OPEN') return 'DONE'
+    if (current === 'DONE') return 'WONT_FIX'
+    return 'OPEN'
+  }
+
   // Gaps
-  const addGap = () =>
-    update({ gaps: [...form.gaps, { id: uuidv4(), description: '' }] })
+  const addGap = (focusNew = false) => {
+    update({
+      gaps: [...form.gaps, { id: uuidv4(), description: '', resolved: false }],
+    })
+    if (focusNew) focusLastInput(gapsSectionRef)
+  }
   const updateGap = (id: string, patch: Partial<GapItem>) =>
     update({ gaps: form.gaps.map(g => (g.id === id ? { ...g, ...patch } : g)) })
   const removeGap = (id: string) =>
     update({ gaps: form.gaps.filter(g => g.id !== id) })
 
   // Recommendations
-  const addRecommendation = () =>
+  const addRecommendation = (focusNew = false) => {
     update({
       recommendations: [
         ...form.recommendations,
-        { id: uuidv4(), description: '' },
+        { id: uuidv4(), status: 'OPEN' as const, description: '' },
       ],
     })
+    if (focusNew) focusLastInput(recommendationsSectionRef)
+  }
   const updateRecommendation = (
     id: string,
     patch: Partial<RecommendationItem>
@@ -201,9 +245,10 @@ const CodeReview = () => {
         {/* Export bar */}
         <ExportBar
           form={form}
-          onSave={handleSave}
+          saveNow={handleSave}
           isSaving={isSaving}
           isDirty={isDirty}
+          saveError={saveError}
         />
 
         {/* Requirements Coverage */}
@@ -211,9 +256,12 @@ const CodeReview = () => {
           <h2 className="text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
             Requirements Coverage
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-2" ref={requirementsSectionRef}>
             {form.requirements.map(req => (
-              <SectionRow key={req.id} onRemove={() => removeRequirement(req.id)}>
+              <SectionRow
+                key={req.id}
+                onRemove={() => removeRequirement(req.id)}
+              >
                 <StatusDropdown
                   value={req.status}
                   onChange={(val: StatusOption) =>
@@ -226,6 +274,12 @@ const CodeReview = () => {
                   onChange={e =>
                     updateRequirement(req.id, { description: e.target.value })
                   }
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addRequirement(true)
+                    }
+                  }}
                   placeholder="Describe the requirement…"
                   className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
                 />
@@ -233,7 +287,7 @@ const CodeReview = () => {
             ))}
           </div>
           <button
-            onClick={addRequirement}
+            onClick={() => addRequirement(true)}
             className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors print:hidden"
           >
             + Add requirement
@@ -245,21 +299,39 @@ const CodeReview = () => {
           <h2 className="text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
             Gaps Identified
           </h2>
-          <div className="space-y-2">
-            {form.gaps.map(gap => (
-              <SectionRow key={gap.id} onRemove={() => removeGap(gap.id)}>
-                <input
-                  type="text"
-                  value={gap.description}
-                  onChange={e => updateGap(gap.id, { description: e.target.value })}
-                  placeholder="Describe the gap…"
-                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
-                />
-              </SectionRow>
-            ))}
+          <div className="space-y-2" ref={gapsSectionRef}>
+            {form.gaps.map(gap => {
+              const resolved = gap.resolved ?? false
+              return (
+                <SectionRow key={gap.id} onRemove={() => removeGap(gap.id)}>
+                  <button
+                    onClick={() => updateGap(gap.id, { resolved: !resolved })}
+                    className={`shrink-0 text-sm mt-1 transition-colors ${resolved ? 'text-green-500' : 'text-gray-300 hover:text-gray-500'}`}
+                    title={resolved ? 'Mark as open' : 'Mark as resolved'}
+                  >
+                    {resolved ? '✓' : '○'}
+                  </button>
+                  <input
+                    type="text"
+                    value={gap.description}
+                    onChange={e =>
+                      updateGap(gap.id, { description: e.target.value })
+                    }
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addGap(true)
+                      }
+                    }}
+                    placeholder="Describe the gap…"
+                    className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 ${resolved ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                  />
+                </SectionRow>
+              )
+            })}
           </div>
           <button
-            onClick={addGap}
+            onClick={() => addGap(true)}
             className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors print:hidden"
           >
             + Add gap
@@ -271,27 +343,62 @@ const CodeReview = () => {
           <h2 className="text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
             Recommendations
           </h2>
-          <div className="space-y-2">
-            {form.recommendations.map(rec => (
-              <SectionRow
-                key={rec.id}
-                onRemove={() => removeRecommendation(rec.id)}
-              >
-                <span className="text-gray-400 text-sm mt-1 shrink-0">☐</span>
-                <input
-                  type="text"
-                  value={rec.description}
-                  onChange={e =>
-                    updateRecommendation(rec.id, { description: e.target.value })
-                  }
-                  placeholder="Describe the recommendation…"
-                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
-                />
-              </SectionRow>
-            ))}
+          <div className="space-y-2" ref={recommendationsSectionRef}>
+            {form.recommendations.map(rec => {
+              const status = rec.status ?? 'OPEN'
+              const icon =
+                status === 'DONE' ? '✓' : status === 'WONT_FIX' ? '✕' : '☐'
+              const iconColor =
+                status === 'DONE'
+                  ? 'text-green-500'
+                  : status === 'WONT_FIX'
+                    ? 'text-orange-400'
+                    : 'text-gray-400'
+              const textClass =
+                status === 'OPEN'
+                  ? 'text-gray-800'
+                  : status === 'DONE'
+                    ? 'line-through text-gray-400'
+                    : 'line-through text-gray-300'
+              return (
+                <SectionRow
+                  key={rec.id}
+                  onRemove={() => removeRecommendation(rec.id)}
+                >
+                  <button
+                    onClick={() =>
+                      updateRecommendation(rec.id, {
+                        status: cycleRecStatus(rec.status),
+                      })
+                    }
+                    className={`shrink-0 text-sm mt-1 transition-colors hover:opacity-70 ${iconColor}`}
+                    title={`Status: ${status} — click to cycle`}
+                  >
+                    {icon}
+                  </button>
+                  <input
+                    type="text"
+                    value={rec.description}
+                    onChange={e =>
+                      updateRecommendation(rec.id, {
+                        description: e.target.value,
+                      })
+                    }
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addRecommendation(true)
+                      }
+                    }}
+                    placeholder="Describe the recommendation…"
+                    className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 ${textClass}`}
+                  />
+                </SectionRow>
+              )
+            })}
           </div>
           <button
-            onClick={addRecommendation}
+            onClick={() => addRecommendation(true)}
             className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors print:hidden"
           >
             + Add recommendation
@@ -305,7 +412,10 @@ const CodeReview = () => {
           </h2>
           <div className="space-y-4">
             {form.outOfScope.map(item => (
-              <div key={item.id} className="group bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+              <div
+                key={item.id}
+                className="group bg-white border border-gray-200 rounded-lg p-4 space-y-3"
+              >
                 <div className="flex items-start gap-2">
                   <input
                     type="text"

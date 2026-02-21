@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# PM Tools
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local-first PM productivity tool for writing structured code reviews and (future) PRDs.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Structured code review form** — Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
+- **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per requirement row
+- **Recommendation status** — Click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
+- **Gap resolution** — Toggle gaps as resolved with visual strikethrough
+- **Auto-save** — Debounced 1.5s auto-save after any input; immediate save before any export
+- **Keyboard friendly** — Press Enter in any row to add the next item
+- **Export options** — Copy Markdown, Print to PDF, Download .docx
+- **Filesystem persistence** — Reviews saved to `local_data/` via a lightweight Express backend
+- **PWA-ready** — Favicon, web manifest, installable as a browser app
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: Vite + React + TypeScript + Tailwind CSS
+- **Backend**: Express 5 (mounted on Vite dev server in dev; standalone in production)
+- **State**: Zustand
+- **Persistence**: Filesystem JSON (`local_data/reviews.json`)
+- **Export**: `docx` for Word/Google Docs, `window.print()` for PDF
 
-## Expanding the ESLint configuration
+## Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev       # Vite dev server with API mounted at same origin
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+App runs at `http://localhost:5173`. No separate server needed in dev.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Production
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build     # Build frontend to dist/
+npm start         # Express serves dist/ + /api on PORT (default 3004)
 ```
+
+### pm2
+
+PM Tools is registered in the shared `ecosystem.config.js` at the CLAUDE project root:
+
+```bash
+# From the CLAUDE directory
+npm run build --prefix pm-tools   # build first
+pm2 start ecosystem.config.js --only pm-tools
+```
+
+Runs on **port 3004**.
+
+## Quality
+
+```bash
+npm run quality   # format check + lint + type-check + security audit
+npm run lint
+npm run type-check
+```
+
+## Data
+
+Reviews are stored in `local_data/reviews.json` — gitignored, filesystem only. Back up this directory if you want to preserve saved reviews.
+
+## Planned
+
+- PRD tool (same structure, separate route and data file)

@@ -39,12 +39,17 @@ const Home = () => {
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         {loading && (
-          <p className="text-gray-500 text-sm">Loading…</p>
+          <p className="text-gray-500 text-sm">Connecting to local server…</p>
         )}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700 text-sm">
-            Could not connect to local server. Make sure{' '}
-            <code className="font-mono">npm run dev</code> is running.
+          <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700 text-sm space-y-2">
+            <p>Failed to load reviews. Try refreshing the page.</p>
+            <button
+              onClick={() => fetchDocuments()}
+              className="text-red-700 underline text-sm hover:text-red-900"
+            >
+              Retry
+            </button>
           </div>
         )}
 

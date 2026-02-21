@@ -1,4 +1,5 @@
 export type StatusOption = 'VERIFIED' | 'INCOMPLETE' | 'MISSING'
+export type RecommendationStatus = 'OPEN' | 'DONE' | 'WONT_FIX'
 
 export interface RequirementItem {
   id: string
@@ -9,10 +10,12 @@ export interface RequirementItem {
 export interface GapItem {
   id: string
   description: string
+  resolved?: boolean
 }
 
 export interface RecommendationItem {
   id: string
+  status?: RecommendationStatus
   description: string
 }
 

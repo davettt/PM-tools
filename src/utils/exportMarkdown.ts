@@ -21,7 +21,9 @@ export function generateMarkdown(form: CodeReviewForm): string {
     lines.push('_No gaps identified._')
   } else {
     for (const gap of form.gaps) {
-      lines.push(`- ${gap.description}`)
+      lines.push(
+        gap.resolved ? `- ~~${gap.description}~~` : `- ${gap.description}`
+      )
     }
   }
   lines.push('')
@@ -31,7 +33,11 @@ export function generateMarkdown(form: CodeReviewForm): string {
     lines.push('_No recommendations._')
   } else {
     for (const rec of form.recommendations) {
-      lines.push(`- [ ] ${rec.description}`)
+      const status = rec.status ?? 'OPEN'
+      if (status === 'DONE') lines.push(`- [x] ${rec.description}`)
+      else if (status === 'WONT_FIX')
+        lines.push(`- ~~${rec.description}~~ *(Won't Fix)*`)
+      else lines.push(`- [ ] ${rec.description}`)
     }
   }
   lines.push('')
@@ -51,7 +57,9 @@ export function generateMarkdown(form: CodeReviewForm): string {
   return lines.join('\n')
 }
 
-export async function copyMarkdownToClipboard(form: CodeReviewForm): Promise<void> {
+export async function copyMarkdownToClipboard(
+  form: CodeReviewForm
+): Promise<void> {
   const md = generateMarkdown(form)
   await navigator.clipboard.writeText(md)
 }
