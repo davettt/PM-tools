@@ -5,6 +5,8 @@ import { useReviewStore } from '../stores/reviewStore'
 import StatusDropdown from '../components/StatusDropdown'
 import SectionRow from '../components/SectionRow'
 import ExportBar from '../components/ExportBar'
+import EnhanceModal from '../components/EnhanceModal'
+import { enhanceReview } from '../utils/enhanceWithAI'
 import type {
   CodeReviewForm,
   RequirementItem,
@@ -12,7 +14,10 @@ import type {
   RecommendationItem,
   OutOfScopeItem,
   StatusOption,
+  GapStatus,
   RecommendationStatus,
+  EnhancementResult,
+  AcceptedChanges,
   SavedDocument,
 } from '../types'
 
@@ -37,6 +42,11 @@ const CodeReview = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [enhanceResult, setEnhanceResult] = useState<EnhancementResult | null>(
+    null
+  )
+  const [enhanceError, setEnhanceError] = useState<string | null>(null)
 
   const hasInitializedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -47,7 +57,7 @@ const CodeReview = () => {
   const focusLastInput = (ref: React.RefObject<HTMLDivElement | null>) => {
     setTimeout(() => {
       const inputs =
-        ref.current?.querySelectorAll<HTMLInputElement>('input[type="text"]')
+        ref.current?.querySelectorAll<HTMLTextAreaElement>('textarea')
       inputs?.[inputs.length - 1]?.focus()
     }, 0)
   }
@@ -118,6 +128,49 @@ const CodeReview = () => {
     }
   }, [handleSave, isDirty])
 
+  const handleEnhance = async () => {
+    setIsEnhancing(true)
+    setEnhanceError(null)
+    try {
+      await handleSave()
+      const result = await enhanceReview(form)
+      setEnhanceResult(result)
+    } catch (err) {
+      setEnhanceError(err instanceof Error ? err.message : 'Enhancement failed')
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
+
+  const applyEnhancements = (accepted: AcceptedChanges) => {
+    const appendedGaps = accepted.newGaps.map(note => {
+      const trimmed = note.trim()
+      const description =
+        trimmed.endsWith('.') || trimmed.endsWith('?')
+          ? trimmed
+          : `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)} not covered.`
+      return { id: uuidv4(), description, status: 'OPEN' as const }
+    })
+    update({
+      requirements: form.requirements.map(r => {
+        const d = accepted.requirements[r.id]
+        return d !== undefined ? { ...r, description: d } : r
+      }),
+      gaps: [
+        ...form.gaps.map(g => {
+          const d = accepted.gaps[g.id]
+          return d !== undefined ? { ...g, description: d } : g
+        }),
+        ...appendedGaps,
+      ],
+      recommendations: form.recommendations.map(r => {
+        const d = accepted.recommendations[r.id]
+        return d !== undefined ? { ...r, description: d } : r
+      }),
+    })
+    setEnhanceResult(null)
+  }
+
   // Requirements
   const addRequirement = (focusNew = false) => {
     update({
@@ -145,10 +198,17 @@ const CodeReview = () => {
     return 'OPEN'
   }
 
+  const cycleGapStatus = (gap: GapItem): GapStatus => {
+    const effective = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
+    if (effective === 'OPEN') return 'RESOLVED'
+    if (effective === 'RESOLVED') return 'WONT_DO'
+    return 'OPEN'
+  }
+
   // Gaps
   const addGap = (focusNew = false) => {
     update({
-      gaps: [...form.gaps, { id: uuidv4(), description: '', resolved: false }],
+      gaps: [...form.gaps, { id: uuidv4(), description: '', status: 'OPEN' }],
     })
     if (focusNew) focusLastInput(gapsSectionRef)
   }
@@ -249,7 +309,12 @@ const CodeReview = () => {
           isSaving={isSaving}
           isDirty={isDirty}
           saveError={saveError}
+          onEnhanceClick={handleEnhance}
+          isEnhancing={isEnhancing}
         />
+        {enhanceError && (
+          <p className="text-sm text-red-500 -mt-4">{enhanceError}</p>
+        )}
 
         {/* Requirements Coverage */}
         <section>
@@ -268,20 +333,20 @@ const CodeReview = () => {
                     updateRequirement(req.id, { status: val })
                   }
                 />
-                <input
-                  type="text"
+                <textarea
+                  rows={1}
                   value={req.description}
                   onChange={e =>
                     updateRequirement(req.id, { description: e.target.value })
                   }
                   onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
                       addRequirement(true)
                     }
                   }}
                   placeholder="Describe the requirement…"
-                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
+                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
                 />
               </SectionRow>
             ))}
@@ -301,32 +366,81 @@ const CodeReview = () => {
           </h2>
           <div className="space-y-2" ref={gapsSectionRef}>
             {form.gaps.map(gap => {
-              const resolved = gap.resolved ?? false
+              const gapStatus: GapStatus =
+                gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
+              const gapIcon =
+                gapStatus === 'RESOLVED'
+                  ? '✓'
+                  : gapStatus === 'WONT_DO'
+                    ? '✕'
+                    : '○'
+              const gapIconColor =
+                gapStatus === 'RESOLVED'
+                  ? 'text-green-500 hover:opacity-70'
+                  : gapStatus === 'WONT_DO'
+                    ? 'text-orange-400 hover:opacity-70'
+                    : 'text-gray-300 hover:text-gray-500'
+              const gapTextClass =
+                gapStatus === 'OPEN'
+                  ? 'text-gray-800'
+                  : 'line-through text-gray-400'
+              const gapTitle =
+                gapStatus === 'OPEN'
+                  ? 'Mark as resolved'
+                  : gapStatus === 'RESOLVED'
+                    ? "Mark as won't do"
+                    : 'Mark as open'
               return (
-                <SectionRow key={gap.id} onRemove={() => removeGap(gap.id)}>
-                  <button
-                    onClick={() => updateGap(gap.id, { resolved: !resolved })}
-                    className={`shrink-0 text-sm mt-1 transition-colors ${resolved ? 'text-green-500' : 'text-gray-300 hover:text-gray-500'}`}
-                    title={resolved ? 'Mark as open' : 'Mark as resolved'}
-                  >
-                    {resolved ? '✓' : '○'}
-                  </button>
-                  <input
-                    type="text"
-                    value={gap.description}
-                    onChange={e =>
-                      updateGap(gap.id, { description: e.target.value })
-                    }
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addGap(true)
+                <div key={gap.id}>
+                  <SectionRow onRemove={() => removeGap(gap.id)}>
+                    <button
+                      onClick={() =>
+                        updateGap(gap.id, { status: cycleGapStatus(gap) })
                       }
-                    }}
-                    placeholder="Describe the gap…"
-                    className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 ${resolved ? 'line-through text-gray-400' : 'text-gray-800'}`}
-                  />
-                </SectionRow>
+                      className={`shrink-0 text-sm mt-1 transition-colors ${gapIconColor}`}
+                      title={gapTitle}
+                    >
+                      {gapIcon}
+                    </button>
+                    <textarea
+                      rows={1}
+                      value={gap.description}
+                      onChange={e =>
+                        updateGap(gap.id, { description: e.target.value })
+                      }
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          addGap(true)
+                        }
+                      }}
+                      placeholder="Describe the gap…"
+                      className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content ${gapTextClass}`}
+                    />
+                  </SectionRow>
+                  {gapStatus === 'RESOLVED' && (
+                    <textarea
+                      rows={1}
+                      value={gap.note ?? ''}
+                      onChange={e =>
+                        updateGap(gap.id, { note: e.target.value })
+                      }
+                      placeholder="What was done?"
+                      className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
+                    />
+                  )}
+                  {gapStatus === 'WONT_DO' && (
+                    <textarea
+                      rows={1}
+                      value={gap.reason ?? ''}
+                      onChange={e =>
+                        updateGap(gap.id, { reason: e.target.value })
+                      }
+                      placeholder="Why won't this be done?"
+                      className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
+                    />
+                  )}
+                </div>
               )
             })}
           </div>
@@ -361,39 +475,49 @@ const CodeReview = () => {
                     ? 'line-through text-gray-400'
                     : 'line-through text-gray-300'
               return (
-                <SectionRow
-                  key={rec.id}
-                  onRemove={() => removeRecommendation(rec.id)}
-                >
-                  <button
-                    onClick={() =>
-                      updateRecommendation(rec.id, {
-                        status: cycleRecStatus(rec.status),
-                      })
-                    }
-                    className={`shrink-0 text-sm mt-1 transition-colors hover:opacity-70 ${iconColor}`}
-                    title={`Status: ${status} — click to cycle`}
-                  >
-                    {icon}
-                  </button>
-                  <input
-                    type="text"
-                    value={rec.description}
-                    onChange={e =>
-                      updateRecommendation(rec.id, {
-                        description: e.target.value,
-                      })
-                    }
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addRecommendation(true)
+                <div key={rec.id}>
+                  <SectionRow onRemove={() => removeRecommendation(rec.id)}>
+                    <button
+                      onClick={() =>
+                        updateRecommendation(rec.id, {
+                          status: cycleRecStatus(rec.status),
+                        })
                       }
-                    }}
-                    placeholder="Describe the recommendation…"
-                    className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 ${textClass}`}
-                  />
-                </SectionRow>
+                      className={`shrink-0 text-sm mt-1 transition-colors hover:opacity-70 ${iconColor}`}
+                      title={`Status: ${status} — click to cycle`}
+                    >
+                      {icon}
+                    </button>
+                    <textarea
+                      rows={1}
+                      value={rec.description}
+                      onChange={e =>
+                        updateRecommendation(rec.id, {
+                          description: e.target.value,
+                        })
+                      }
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          addRecommendation(true)
+                        }
+                      }}
+                      placeholder="Describe the recommendation…"
+                      className={`flex-1 text-sm bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content ${textClass}`}
+                    />
+                  </SectionRow>
+                  {status === 'WONT_FIX' && (
+                    <textarea
+                      rows={1}
+                      value={rec.reason ?? ''}
+                      onChange={e =>
+                        updateRecommendation(rec.id, { reason: e.target.value })
+                      }
+                      placeholder="Why won't this be acted on?"
+                      className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
+                    />
+                  )}
+                </div>
               )
             })}
           </div>
@@ -461,6 +585,15 @@ const CodeReview = () => {
           </button>
         </section>
       </main>
+
+      {enhanceResult && (
+        <EnhanceModal
+          result={enhanceResult}
+          form={form}
+          onApply={applyEnhancements}
+          onClose={() => setEnhanceResult(null)}
+        />
+      )}
     </div>
   )
 }

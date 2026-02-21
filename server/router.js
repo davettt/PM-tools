@@ -36,6 +36,42 @@ export function createApp() {
 
   router.get('/api/health', (_req, res) => res.json({ ok: true }))
 
+  router.post('/api/ai', async (req, res) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return res
+        .status(503)
+        .json({ error: 'ANTHROPIC_API_KEY not set. Add it to your .env file.' })
+    }
+    try {
+      const { prompt, systemPrompt } = req.body
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      if (!response.ok) {
+        const err = await response.json()
+        return res
+          .status(response.status)
+          .json({ error: err.error?.message ?? 'Anthropic API error' })
+      }
+      res.json(await response.json())
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'AI request failed' })
+    }
+  })
+
   router.get('/api/reviews', async (_req, res) => {
     try {
       res.json(await readReviews())

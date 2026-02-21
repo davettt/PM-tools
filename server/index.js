@@ -1,3 +1,5 @@
+import { config } from 'dotenv'
+config()
 import express from 'express'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'

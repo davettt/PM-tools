@@ -12,13 +12,14 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "type-check": "tsc --noEmit",
-    "security": "npm audit --audit-level=high",
+    "security": "npm audit --audit-level=high --omit=dev",
     "quality": "npm run format:check && npm run lint && npm run type-check && npm run security"
   },
   "dependencies": {
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "docx": "^9.5.3",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

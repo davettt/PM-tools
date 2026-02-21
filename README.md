@@ -7,10 +7,11 @@ A local-first PM productivity tool for writing structured code reviews and (futu
 - **Structured code review form** — Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
 - **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per requirement row
 - **Recommendation status** — Click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
-- **Gap resolution** — Toggle gaps as resolved with visual strikethrough
+- **Gap status** — Click to cycle OPEN (○) → RESOLVED (✓) → WON'T DO (✕); add an optional note on resolved gaps and an optional reason on won't-do gaps
 - **Auto-save** — Debounced 1.5s auto-save after any input; immediate save before any export
 - **Keyboard friendly** — Press Enter in any row to add the next item
 - **Export options** — Copy Markdown, Print to PDF, Download .docx
+- **AI writing enhancement** — "Enhance with AI" reviews each item for clarity, precision, and missing specificity; accept or skip per item
 - **Filesystem persistence** — Reviews saved to `local_data/` via a lightweight Express backend
 - **PWA-ready** — Favicon, web manifest, installable as a browser app
 
@@ -21,6 +22,25 @@ A local-first PM productivity tool for writing structured code reviews and (futu
 - **State**: Zustand
 - **Persistence**: Filesystem JSON (`local_data/reviews.json`)
 - **Export**: `docx` for Word/Google Docs, `window.print()` for PDF
+
+## AI Features
+
+The "Enhance with AI" button sends the current review to Claude Haiku for a writing pass — fixing typos, adding technical precision, and flagging items where critical information is missing.
+
+**Setup:**
+
+```bash
+cp .env.example .env
+# Add your Anthropic API key to .env
+```
+
+The key is read server-side only and never sent to the browser. The feature is optional — if no key is set, clicking "Enhance with AI" shows an inline error and the app continues working normally.
+
+In **dev**, restart `npm run dev` after adding the key. In **production**, restart the pm2 process:
+
+```bash
+pm2 restart pm-tools
+```
 
 ## Development
 

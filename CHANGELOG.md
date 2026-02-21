@@ -5,6 +5,30 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-21
+
+### Added
+- **Gap WONT_DO status** — gap toggle now cycles three states: OPEN (○) → RESOLVED (✓) → WON'T DO (✕), matching the existing three-state pattern on recommendations
+- **Reason field for WONT_DO gaps** — optional italic field appears below the gap description to record why it won't be addressed
+- **Note field for RESOLVED gaps** — optional italic field to record what was done to address the gap, keeping the gap description clean
+- **Reason field for WONT_FIX recommendations** — same pattern as WONT_DO gaps
+
+### Changed
+- **Markdown export (gaps)** — gaps now use `[ ]` for open and `[x]` for resolved, consistent with recommendations; resolved note and won't-do reason appended inline
+- **Docx export (gaps)** — gap status prefix (`[Resolved]`, `[Won't Do]`) includes reason/note where present
+
+### Fixed
+- **EnhanceModal empty state** — shows "No improvements found — this review looks good as-is." when AI finds no actionable changes
+- **EnhanceModal accessibility** — added `role="dialog"`, `aria-modal`, `aria-labelledby`, Escape key to close, auto-focus on open, and Tab focus trap
+
+## [1.1.0] - 2026-02-21
+
+### Added
+- **AI writing enhancement** — "Enhance with AI" button in ExportBar sends the review to Claude Haiku for a PM writing pass
+- **EnhanceModal** — per-item diff view with checkboxes; improved text shown prominently with original text as `was: "…"` for changed items; amber flag badges for items missing critical specificity; advisory "Missing Coverage" callout for cross-cutting gaps
+- **Anthropic API proxy** — `POST /api/ai` server endpoint keeps API key server-side; returns 503 with actionable error if key is absent
+- **`.env.example`** — documents required environment variable
+
 ## [1.0.0] - 2026-02-21
 
 ### Added

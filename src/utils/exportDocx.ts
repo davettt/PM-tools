@@ -62,7 +62,14 @@ export async function downloadDocx(form: CodeReviewForm): Promise<void> {
     children.push(body('No gaps identified.'))
   } else {
     for (const gap of form.gaps) {
-      children.push(bullet(gap.description))
+      const gapStatus = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
+      const prefix =
+        gapStatus === 'RESOLVED'
+          ? `[Resolved${gap.note ? ` — ${gap.note}` : ''}] `
+          : gapStatus === 'WONT_DO'
+            ? `[Won't Do${gap.reason ? ` — ${gap.reason}` : ''}] `
+            : ''
+      children.push(bullet(`${prefix}${gap.description}`))
     }
   }
   children.push(empty())
@@ -72,7 +79,14 @@ export async function downloadDocx(form: CodeReviewForm): Promise<void> {
     children.push(body('No recommendations.'))
   } else {
     for (const rec of form.recommendations) {
-      children.push(bullet(`[ ] ${rec.description}`))
+      const recStatus = rec.status ?? 'OPEN'
+      const recPrefix =
+        recStatus === 'DONE'
+          ? '[Done] '
+          : recStatus === 'WONT_FIX'
+            ? `[Won't Fix${rec.reason ? ` — ${rec.reason}` : ''}] `
+            : '[ ] '
+      children.push(bullet(`${recPrefix}${rec.description}`))
     }
   }
   children.push(empty())

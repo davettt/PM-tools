@@ -21,9 +21,16 @@ export function generateMarkdown(form: CodeReviewForm): string {
     lines.push('_No gaps identified._')
   } else {
     for (const gap of form.gaps) {
-      lines.push(
-        gap.resolved ? `- ~~${gap.description}~~` : `- ${gap.description}`
-      )
+      const gapStatus = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
+      if (gapStatus === 'RESOLVED') {
+        const suffix = gap.note ? ` *(${gap.note})*` : ''
+        lines.push(`- [x] ${gap.description}${suffix}`)
+      } else if (gapStatus === 'WONT_DO') {
+        const suffix = gap.reason ? ` — ${gap.reason}` : ''
+        lines.push(`- ~~${gap.description}~~ *(Won't Do${suffix})*`)
+      } else {
+        lines.push(`- [ ] ${gap.description}`)
+      }
     }
   }
   lines.push('')
@@ -35,9 +42,10 @@ export function generateMarkdown(form: CodeReviewForm): string {
     for (const rec of form.recommendations) {
       const status = rec.status ?? 'OPEN'
       if (status === 'DONE') lines.push(`- [x] ${rec.description}`)
-      else if (status === 'WONT_FIX')
-        lines.push(`- ~~${rec.description}~~ *(Won't Fix)*`)
-      else lines.push(`- [ ] ${rec.description}`)
+      else if (status === 'WONT_FIX') {
+        const suffix = rec.reason ? ` — ${rec.reason}` : ''
+        lines.push(`- ~~${rec.description}~~ *(Won't Fix${suffix})*`)
+      } else lines.push(`- [ ] ${rec.description}`)
     }
   }
   lines.push('')
