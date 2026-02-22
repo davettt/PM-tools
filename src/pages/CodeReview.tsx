@@ -6,6 +6,7 @@ import StatusDropdown from '../components/StatusDropdown'
 import SectionRow from '../components/SectionRow'
 import ExportBar from '../components/ExportBar'
 import EnhanceModal from '../components/EnhanceModal'
+import ImportFromPRDModal from '../components/ImportFromPRDModal'
 import { enhanceReview } from '../utils/enhanceWithAI'
 import type {
   CodeReviewForm,
@@ -23,6 +24,10 @@ import type {
 
 const emptyForm = (): CodeReviewForm => ({
   title: '',
+  author: '',
+  authorRole: '',
+  relatedPRD: '',
+  relatedIssue: '',
   requirements: [],
   gaps: [],
   recommendations: [],
@@ -42,6 +47,7 @@ const CodeReview = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [showImportFromPRD, setShowImportFromPRD] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [enhanceResult, setEnhanceResult] = useState<EnhancementResult | null>(
     null
@@ -76,7 +82,7 @@ const CodeReview = () => {
         return res.json()
       })
       .then((doc: SavedDocument) => {
-        setForm(doc.data)
+        setForm({ ...emptyForm(), ...(doc.data as CodeReviewForm) })
         setDocId(doc.id)
         setCreatedAt(doc.createdAt)
         setIsDirty(false)
@@ -302,9 +308,74 @@ const CodeReview = () => {
           />
         </div>
 
+        {/* Metadata */}
+        <div className="flex flex-wrap gap-x-6 gap-y-2 print:hidden">
+          {(
+            [
+              ['author', 'Author', 'PM name'],
+              ['authorRole', 'Role', 'e.g. Product Manager'],
+              ['relatedPRD', 'Related PRD', 'PRD name or link'],
+              ['relatedIssue', 'Issue', 'Jira / Linear ID or link'],
+            ] as [keyof CodeReviewForm, string, string][]
+          ).map(([field, label, placeholder]) => (
+            <div key={field} className="flex items-center gap-2 min-w-[180px]">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">
+                {label}
+              </span>
+              <input
+                type="text"
+                value={(form[field] as string) ?? ''}
+                onChange={e => update({ [field]: e.target.value })}
+                placeholder={placeholder}
+                className="text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-0.5 placeholder-gray-300 min-w-0 flex-1"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Metadata — print only */}
+        {(() => {
+          const rows = (
+            [
+              ['Author', form.author],
+              ['Role', form.authorRole],
+              ['Related PRD', form.relatedPRD],
+              ['Issue', form.relatedIssue],
+              [
+                'Date',
+                createdAt
+                  ? new Date(createdAt).toLocaleDateString('en-AU', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '',
+              ],
+            ] as [string, string | undefined][]
+          ).filter(([, v]) => v)
+          if (rows.length === 0) return null
+          return (
+            <table className="hidden print:table w-full text-sm border-collapse mb-2">
+              <tbody>
+                {rows.map(([label, value]) => (
+                  <tr key={label} className="border border-gray-300">
+                    <td className="border border-gray-300 px-3 py-1 font-semibold text-gray-600 whitespace-nowrap w-32">
+                      {label}
+                    </td>
+                    <td className="border border-gray-300 px-3 py-1 text-gray-800">
+                      {value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        })()}
+
         {/* Export bar */}
         <ExportBar
           form={form}
+          createdAt={createdAt}
           saveNow={handleSave}
           isSaving={isSaving}
           isDirty={isDirty}
@@ -318,7 +389,18 @@ const CodeReview = () => {
 
         {/* Requirements Coverage */}
         <section>
-          <h2 className="text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
+          <div className="flex items-center justify-between mb-3 print:hidden">
+            <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide text-sm">
+              Requirements Coverage
+            </h2>
+            <button
+              onClick={() => setShowImportFromPRD(true)}
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Import from PRD
+            </button>
+          </div>
+          <h2 className="hidden print:block text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
             Requirements Coverage
           </h2>
           <div className="space-y-2" ref={requirementsSectionRef}>
@@ -592,6 +674,16 @@ const CodeReview = () => {
           form={form}
           onApply={applyEnhancements}
           onClose={() => setEnhanceResult(null)}
+        />
+      )}
+
+      {showImportFromPRD && (
+        <ImportFromPRDModal
+          onImport={items => {
+            update({ requirements: [...form.requirements, ...items] })
+            setShowImportFromPRD(false)
+          }}
+          onClose={() => setShowImportFromPRD(false)}
         />
       )}
     </div>

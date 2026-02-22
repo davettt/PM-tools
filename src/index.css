@@ -19,4 +19,11 @@
     resize: none;
     pointer-events: none;
   }
+
+  textarea {
+    field-sizing: content;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
 }

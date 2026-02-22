@@ -5,6 +5,20 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-22
+
+### Added
+- **PRD document metadata** — editable header block with Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, and Doc Link; Created and Last Updated populated from save timestamps; renders as a compact 4-column paired table in PDF export and as a markdown table in Copy Markdown
+- **Code Review document metadata** — Author, Role, Related PRD, and Related Issue fields; renders as a table in PDF export and as bold key-value lines in Markdown and .docx exports
+- **Import requirements from PRD into Code Review** — "Import from PRD" button in the Requirements Coverage header opens a modal to select a saved PRD and choose which requirements to import; imported items default to INCOMPLETE status
+- **Timeline table in PDF export** — Timeline section renders as a compact bordered table (Phase, Dates, What Ships, Dependencies) in print; Dependencies column only appears when at least one phase has content
+- **Timeline table in Markdown export** — Copy Markdown now outputs the Timeline section as a markdown table matching the PDF layout
+
+### Changed
+- **Home page new-document buttons** — New PRD and New Code Review now use the same outlined style; no document type is visually elevated as primary (scales cleanly when more doc types are added)
+- **PRD metadata in .docx export** — bold key-value pairs after the title for all non-empty metadata fields including Design Lead and PMM
+- **Metadata tables** — both PRD and Code Review print-only metadata use bordered HTML tables for compact, readable layout
+
 ## [1.2.0] - 2026-02-21
 
 ### Added

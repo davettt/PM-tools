@@ -6,6 +6,7 @@ import { printDocument } from '../utils/exportPrint'
 
 interface ExportBarProps {
   form: CodeReviewForm
+  createdAt?: string
   saveNow: () => Promise<void>
   isSaving: boolean
   isDirty: boolean
@@ -16,6 +17,7 @@ interface ExportBarProps {
 
 const ExportBar = ({
   form,
+  createdAt,
   saveNow,
   isSaving,
   isDirty,
@@ -27,7 +29,7 @@ const ExportBar = ({
 
   const handleCopyMarkdown = async () => {
     await saveNow()
-    await copyMarkdownToClipboard(form)
+    await copyMarkdownToClipboard(form, createdAt)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -39,7 +41,7 @@ const ExportBar = ({
 
   const handleDocx = async () => {
     await saveNow()
-    downloadDocx(form)
+    downloadDocx(form, createdAt)
   }
 
   const statusText = () => {

@@ -41,11 +41,36 @@ function empty(): Paragraph {
   return new Paragraph({ text: '' })
 }
 
-export async function downloadDocx(form: CodeReviewForm): Promise<void> {
+export async function downloadDocx(
+  form: CodeReviewForm,
+  createdAt?: string
+): Promise<void> {
   const children: Paragraph[] = []
 
   children.push(heading1(`PM Review [${form.title || 'Untitled'}]`))
   children.push(empty())
+
+  const metaRows: [string, string][] = [
+    ['Author', form.author ?? ''],
+    ['Role', form.authorRole ?? ''],
+    ['Related PRD', form.relatedPRD ?? ''],
+    ['Issue', form.relatedIssue ?? ''],
+    [
+      'Date',
+      createdAt
+        ? new Date(createdAt).toLocaleDateString('en-AU', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : '',
+    ],
+  ].filter(([, v]) => v) as [string, string][]
+
+  for (const [label, value] of metaRows) {
+    children.push(bold(`${label}: `, value))
+  }
+  if (metaRows.length > 0) children.push(empty())
 
   children.push(heading2('Requirements Coverage'))
   if (form.requirements.length === 0) {

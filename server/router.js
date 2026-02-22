@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, '..', 'local_data')
 const REVIEWS_FILE = join(DATA_DIR, 'reviews.json')
+const PRDS_FILE = join(DATA_DIR, 'prds.json')
 
 async function ensureDataDir() {
   if (!existsSync(DATA_DIR)) {
@@ -27,6 +28,21 @@ async function readReviews() {
 async function writeReviews(reviews) {
   await ensureDataDir()
   await writeFile(REVIEWS_FILE, JSON.stringify(reviews, null, 2), 'utf-8')
+}
+
+async function readPrds() {
+  await ensureDataDir()
+  if (!existsSync(PRDS_FILE)) {
+    await writeFile(PRDS_FILE, '[]', 'utf-8')
+    return []
+  }
+  const raw = await readFile(PRDS_FILE, 'utf-8')
+  return JSON.parse(raw)
+}
+
+async function writePrds(prds) {
+  await ensureDataDir()
+  await writeFile(PRDS_FILE, JSON.stringify(prds, null, 2), 'utf-8')
 }
 
 export function createApp() {
@@ -54,7 +70,7 @@ export function createApp() {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 4096,
+          max_tokens: 8192,
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -131,6 +147,68 @@ export function createApp() {
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Failed to delete review' })
+    }
+  })
+
+  router.get('/api/prds', async (_req, res) => {
+    try {
+      res.json(await readPrds())
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to read PRDs' })
+    }
+  })
+
+  router.get('/api/prds/:id', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      const prd = prds.find(p => p.id === req.params.id)
+      if (!prd) return res.status(404).json({ error: 'Not found' })
+      res.json(prd)
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to get PRD' })
+    }
+  })
+
+  router.post('/api/prds', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      prds.push(req.body)
+      await writePrds(prds)
+      res.status(201).json(req.body)
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to create PRD' })
+    }
+  })
+
+  router.put('/api/prds/:id', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      const idx = prds.findIndex(p => p.id === req.params.id)
+      if (idx === -1) return res.status(404).json({ error: 'Not found' })
+      prds[idx] = req.body
+      await writePrds(prds)
+      res.json(req.body)
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to update PRD' })
+    }
+  })
+
+  router.delete('/api/prds/:id', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      const filtered = prds.filter(p => p.id !== req.params.id)
+      if (filtered.length === prds.length) {
+        return res.status(404).json({ error: 'Not found' })
+      }
+      await writePrds(filtered)
+      res.status(204).send()
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to delete PRD' })
     }
   })
 

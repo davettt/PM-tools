@@ -32,6 +32,10 @@ export interface OutOfScopeItem {
 
 export interface CodeReviewForm {
   title: string
+  author?: string
+  authorRole?: string
+  relatedPRD?: string
+  relatedIssue?: string
   requirements: RequirementItem[]
   gaps: GapItem[]
   recommendations: RecommendationItem[]
@@ -60,9 +64,100 @@ export interface AcceptedChanges {
 
 export interface SavedDocument {
   id: string
-  type: 'code-review'
+  type: 'code-review' | 'prd'
   title: string
   createdAt: string
   modifiedAt: string
-  data: CodeReviewForm
+  data: CodeReviewForm | PRDForm
+}
+
+// PRD types
+
+export interface PRDMeta {
+  author: string
+  status: 'Draft' | 'In Review' | 'Approved'
+  version: string
+  productArea: string
+  engineeringLead: string
+  designLead: string
+  pmm: string
+  stakeholders: string
+  targetLaunch: string
+  docLink: string
+}
+
+export interface PRDScenario {
+  id: string
+  title: string
+  content: string
+}
+
+export interface PRDRequirementItem {
+  id: string
+  description: string
+  sourceReviewId?: string
+}
+
+export interface PRDSuccessMetric {
+  id: string
+  metric: string
+}
+
+export interface PRDOutOfScopeItem {
+  id: string
+  description: string
+}
+
+export interface PRDTimelinePhase {
+  id: string
+  name: string
+  dates: string
+  deliverables: string
+  dependencies: string
+}
+
+export interface PRDOpenQuestion {
+  id: string
+  question: string
+}
+
+export interface PRDTextFieldImprovement {
+  improved: string
+  flags: string[]
+}
+
+export interface PRDItemImprovement {
+  id: string
+  improved: string
+  flags: string[]
+}
+
+export interface PRDEnhancementResult {
+  sections: {
+    overview?: PRDTextFieldImprovement
+    problemStatement?: PRDTextFieldImprovement
+    objective?: PRDTextFieldImprovement
+    notes?: PRDTextFieldImprovement
+  }
+  successMetrics: PRDItemImprovement[]
+  requirements: PRDItemImprovement[]
+  outOfScope: PRDItemImprovement[]
+  openQuestions: PRDItemImprovement[]
+  scenarios: PRDItemImprovement[]
+  missingSections: string[]
+}
+
+export interface PRDForm {
+  title: string
+  meta: PRDMeta
+  overview: string
+  problemStatement: string
+  objective: string
+  successMetrics: PRDSuccessMetric[]
+  scenarios: PRDScenario[]
+  requirements: PRDRequirementItem[]
+  outOfScope: PRDOutOfScopeItem[]
+  timeline: PRDTimelinePhase[]
+  openQuestions: PRDOpenQuestion[]
+  notes: string
 }

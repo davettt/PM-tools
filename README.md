@@ -1,31 +1,44 @@
 # PM Tools
 
-A local-first PM productivity tool for writing structured code reviews and (future) PRDs.
+A local-first PM productivity tool for writing structured PRDs and code reviews.
 
 ## Features
 
-- **Structured code review form** — Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
-- **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per requirement row
-- **Recommendation status** — Click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
-- **Gap status** — Click to cycle OPEN (○) → RESOLVED (✓) → WON'T DO (✕); add an optional note on resolved gaps and an optional reason on won't-do gaps
-- **Auto-save** — Debounced 1.5s auto-save after any input; immediate save before any export
-- **Keyboard friendly** — Press Enter in any row to add the next item
+### PRD Creator
+- **Full structured form** — Overview, Problem Statement, Goals (objective + success metrics), How This Works (scenarios), Requirements, Out of Scope, Timeline, Open Questions, Notes
+- **Document metadata** — Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, Doc Link; Created and Last Updated populated automatically
+- **Import requirements from Code Review** — pull requirements from any saved code review to seed a PRD
+- **AI writing enhancement** — "Enhance with AI" reviews every section for clarity, completeness, and missing specificity; accept or skip per item
+- **Export options** — Copy Markdown (with metadata table + timeline table), Print to PDF (compact print-only metadata table), Download .docx
+
+### Code Review
+- **Structured form** — Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
+- **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per row
+- **Recommendation status** — click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
+- **Gap status** — click to cycle OPEN (○) → RESOLVED (✓) → WON'T DO (✕); optional note on resolved gaps, optional reason on won't-do gaps
+- **Document metadata** — Author, Role, Related PRD, Related Issue
+- **Import requirements from PRD** — pull requirements from any saved PRD; imported as INCOMPLETE
+- **AI writing enhancement** — same per-item enhance flow as PRD
 - **Export options** — Copy Markdown, Print to PDF, Download .docx
-- **AI writing enhancement** — "Enhance with AI" reviews each item for clarity, precision, and missing specificity; accept or skip per item
-- **Filesystem persistence** — Reviews saved to `local_data/` via a lightweight Express backend
-- **PWA-ready** — Favicon, web manifest, installable as a browser app
+
+### Shared
+- **Auto-save** — debounced 1.5s auto-save after any input; immediate save before any export
+- **Keyboard friendly** — press Enter in any row to add the next item
+- **Home dashboard** — lists all PRDs and Code Reviews sorted by last modified, with delete action
+- **Filesystem persistence** — documents saved to `local_data/` via a lightweight Express backend
+- **PWA-ready** — favicon, web manifest, installable as a browser app
 
 ## Stack
 
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS
 - **Backend**: Express 5 (mounted on Vite dev server in dev; standalone in production)
 - **State**: Zustand
-- **Persistence**: Filesystem JSON (`local_data/reviews.json`)
+- **Persistence**: Filesystem JSON (`local_data/reviews.json`, `local_data/prds.json`)
 - **Export**: `docx` for Word/Google Docs, `window.print()` for PDF
 
 ## AI Features
 
-The "Enhance with AI" button sends the current review to Claude Haiku for a writing pass — fixing typos, adding technical precision, and flagging items where critical information is missing.
+Both PRDs and Code Reviews have an "Enhance with AI" button that sends the current document to Claude Haiku for a writing pass — fixing clarity, adding technical precision, and flagging items where critical information is missing.
 
 **Setup:**
 
@@ -80,8 +93,7 @@ npm run type-check
 
 ## Data
 
-Reviews are stored in `local_data/reviews.json` — gitignored, filesystem only. Back up this directory if you want to preserve saved reviews.
+Documents are stored in `local_data/` — gitignored, filesystem only. Back up this directory if you want to preserve saved documents.
 
-## Planned
-
-- PRD tool (same structure, separate route and data file)
+- `local_data/reviews.json` — Code Reviews
+- `local_data/prds.json` — PRDs

@@ -1,10 +1,37 @@
 import type { CodeReviewForm } from '../types'
 
-export function generateMarkdown(form: CodeReviewForm): string {
+export function generateMarkdown(
+  form: CodeReviewForm,
+  createdAt?: string
+): string {
   const lines: string[] = []
 
   lines.push(`# PM Review [${form.title || 'Untitled'}]`)
   lines.push('')
+
+  const metaRows: [string, string][] = [
+    ['Author', form.author ?? ''],
+    ['Role', form.authorRole ?? ''],
+    ['Related PRD', form.relatedPRD ?? ''],
+    ['Issue', form.relatedIssue ?? ''],
+    [
+      'Date',
+      createdAt
+        ? new Date(createdAt).toLocaleDateString('en-AU', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : '',
+    ],
+  ].filter(([, v]) => v) as [string, string][]
+
+  if (metaRows.length > 0) {
+    for (const [label, value] of metaRows) {
+      lines.push(`**${label}:** ${value}  `)
+    }
+    lines.push('')
+  }
 
   lines.push('## Requirements Coverage')
   if (form.requirements.length === 0) {
@@ -66,8 +93,9 @@ export function generateMarkdown(form: CodeReviewForm): string {
 }
 
 export async function copyMarkdownToClipboard(
-  form: CodeReviewForm
+  form: CodeReviewForm,
+  createdAt?: string
 ): Promise<void> {
-  const md = generateMarkdown(form)
+  const md = generateMarkdown(form, createdAt)
   await navigator.clipboard.writeText(md)
 }
