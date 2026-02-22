@@ -97,3 +97,17 @@ Documents are stored in `local_data/` — gitignored, filesystem only. Back up t
 
 - `local_data/reviews.json` — Code Reviews
 - `local_data/prds.json` — PRDs
+
+## License
+
+MIT License with Commons Clause — free to use, fork, and modify for personal use. Commercial use requires written permission. See [LICENSE](LICENSE) for details.
+
+## Personal Project Notice
+
+This is a personal project maintained for my own use. You're welcome to:
+
+- Fork and customize for your own needs
+- Report bugs via [GitHub Issues](https://github.com/davettt/PM-tools/issues)
+- Reference the code for learning
+
+I'm not actively reviewing pull requests or feature requests, as this keeps the project focused on my personal workflow.
