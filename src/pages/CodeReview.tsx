@@ -6,8 +6,13 @@ import StatusDropdown from '../components/StatusDropdown'
 import SectionRow from '../components/SectionRow'
 import ExportBar from '../components/ExportBar'
 import EnhanceModal from '../components/EnhanceModal'
+import PasteAIResponseModal from '../components/PasteAIResponseModal'
 import ImportFromPRDModal from '../components/ImportFromPRDModal'
-import { enhanceReview } from '../utils/enhanceWithAI'
+import {
+  enhanceReview,
+  buildFullPrompt,
+  parseResponse,
+} from '../utils/enhanceWithAI'
 import type {
   CodeReviewForm,
   RequirementItem,
@@ -53,6 +58,8 @@ const CodeReview = () => {
     null
   )
   const [enhanceError, setEnhanceError] = useState<string | null>(null)
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
 
   const hasInitializedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -133,6 +140,35 @@ const CodeReview = () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
   }, [handleSave, isDirty])
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(buildFullPrompt(form))
+    setPromptCopied(true)
+    setTimeout(() => setPromptCopied(false), 2000)
+  }
+
+  const handlePasteResponse = (text: string) => {
+    try {
+      const raw = parseResponse(text)
+      const stripFlag = (f: string) => f.replace(/^⚑\s*/, '').trim()
+      const stripFlags = (items: typeof raw.requirements) =>
+        items.map(item => ({ ...item, flags: item.flags.map(stripFlag) }))
+      const result = {
+        ...raw,
+        requirements: stripFlags(raw.requirements),
+        gaps: stripFlags(raw.gaps),
+        recommendations: stripFlags(raw.recommendations),
+      }
+      setEnhanceResult(result)
+      setShowPasteModal(false)
+      setEnhanceError(null)
+    } catch {
+      setEnhanceError(
+        'Could not parse AI response. Make sure you pasted the full JSON output.'
+      )
+      setShowPasteModal(false)
+    }
+  }
 
   const handleEnhance = async () => {
     setIsEnhancing(true)
@@ -381,8 +417,16 @@ const CodeReview = () => {
           isDirty={isDirty}
           saveError={saveError}
           onEnhanceClick={handleEnhance}
+          onCopyPrompt={handleCopyPrompt}
+          onPasteResponse={() => setShowPasteModal(true)}
           isEnhancing={isEnhancing}
         />
+        {promptCopied && (
+          <p className="text-sm text-green-600 -mt-4">
+            ✓ Prompt copied — paste into your AI tool, then use "Paste AI
+            response" to import the result.
+          </p>
+        )}
         {enhanceError && (
           <p className="text-sm text-red-500 -mt-4">{enhanceError}</p>
         )}
@@ -674,6 +718,13 @@ const CodeReview = () => {
           form={form}
           onApply={applyEnhancements}
           onClose={() => setEnhanceResult(null)}
+        />
+      )}
+
+      {showPasteModal && (
+        <PasteAIResponseModal
+          onSubmit={handlePasteResponse}
+          onClose={() => setShowPasteModal(false)}
         />
       )}
 

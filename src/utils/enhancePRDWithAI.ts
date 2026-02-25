@@ -200,6 +200,12 @@ function parseResponse(text: string): PRDEnhancementResult {
   )
 }
 
+export function buildFullPRDPrompt(form: PRDForm): string {
+  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`
+}
+
+export { parseResponse as parsePRDResponse }
+
 export async function enhancePRD(form: PRDForm): Promise<PRDEnhancementResult> {
   const response = await fetch('/api/ai', {
     method: 'POST',

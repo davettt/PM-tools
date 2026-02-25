@@ -29,3 +29,6 @@ local_data/
 # Environment
 .env
 .env.local
+
+# Claude Code context (personal, not committed)
+CLAUDE.md

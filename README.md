@@ -38,22 +38,40 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 
 ## AI Features
 
-Both PRDs and Code Reviews have an "Enhance with AI" button that sends the current document to Claude Haiku for a writing pass — fixing clarity, adding technical precision, and flagging items where critical information is missing.
+Both PRDs and Code Reviews have an **AI Enhance** dropdown that groups three options:
 
-**Setup:**
+| Option | Description |
+|---|---|
+| **Enhance with AI** | Sends the document to Claude Haiku via your API key for a PM writing pass |
+| **Copy prompt** | Copies the full system + document prompt to clipboard to paste into any AI tool |
+| **Paste AI response** | Opens a modal to paste the JSON output back in; same accept/reject UI as the internal flow |
+
+### Using your own API key
 
 ```bash
 cp .env.example .env
 # Add your Anthropic API key to .env
 ```
 
-The key is read server-side only and never sent to the browser. The feature is optional — if no key is set, clicking "Enhance with AI" shows an inline error and the app continues working normally.
+The key is read server-side only and never sent to the browser. If no key is set, "Enhance with AI" shows an inline error — the other two options are unaffected.
 
-In **dev**, restart `npm run dev` after adding the key. In **production**, restart the pm2 process:
+In **dev**, restart `npm run dev` after adding the key. In **production**:
 
 ```bash
 pm2 restart pm-tools
 ```
+
+### External AI workflow (no API key required)
+
+For users who need to use a company-approved AI tool instead of a personal API key:
+
+1. Click **AI Enhance ▾ → Copy prompt** — the full instructions and document are copied to clipboard
+2. Paste into your approved AI tool (Claude, ChatGPT, or any tool that accepts a text prompt)
+3. The AI returns a JSON response — copy it
+4. Click **AI Enhance ▾ → Paste AI response** — paste the JSON and click Apply
+5. The standard accept/reject UI opens, identical to the internal flow
+
+This workflow is fully local — the app itself makes no outbound AI calls when using Copy prompt + Paste AI response.
 
 ## Development
 
@@ -93,10 +111,31 @@ npm run type-check
 
 ## Data
 
-Documents are stored in `local_data/` — gitignored, filesystem only. Back up this directory if you want to preserve saved documents.
+Documents are stored in `local_data/` — gitignored, filesystem only.
 
 - `local_data/reviews.json` — Code Reviews
 - `local_data/prds.json` — PRDs
+
+### Backup
+
+Use the **Export Reviews** and **Export PRDs** buttons on the Home page to download a dated JSON backup (e.g. `pm-tools-reviews-2026-02-25.json`). The exported file is structurally identical to the `local_data/` files.
+
+**Best practice:** export a backup before any significant session, before deleting documents, and whenever you want a checkpoint.
+
+### Restore from backup
+
+1. Stop the app to prevent an auto-save from overwriting during restore:
+   ```bash
+   pm2 stop pm-tools
+   ```
+2. Navigate to `local_data/`
+3. Rename or delete the existing file (e.g. rename `prds.json` to `prds.json.bak` as a precaution)
+4. Copy your backup file into `local_data/` and rename it to `prds.json` or `reviews.json`
+5. Restart:
+   ```bash
+   pm2 start pm-tools
+   ```
+6. Refresh the app — your documents will be restored
 
 ## License
 

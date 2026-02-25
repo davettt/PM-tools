@@ -5,6 +5,18 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-25
+
+### Added
+- **AI Enhance dropdown** — "Enhance with AI" replaced with a grouped "AI Enhance ▾" dropdown on both PRD and Code Review; contains three options: Enhance with AI, Copy prompt, and Paste AI response
+- **External AI workflow** — "Copy prompt" copies the full system instructions and structured document text to clipboard for pasting into any approved AI tool; "Paste AI response" opens a modal to import the JSON output back in, feeding the same accept/reject UI as the internal flow
+- **Backup export** — Home page now shows "Export Reviews" and "Export PRDs" buttons; each downloads a dated JSON file (e.g. `pm-tools-reviews-2026-02-25.json`) identical in format to `local_data/` for easy restore; buttons are disabled when the respective list is empty
+- **Restore instructions** — README Data section updated with step-by-step restore procedure and backup best practices
+
+### Changed
+- **AI Enhance button styling** — button now matches the visual style of other export buttons (gray, outlined) rather than blue, keeping the export bar visually consistent
+- **External AI flag normalisation** — flags returned from external AI tools with a leading ⚑ symbol in the text are stripped on import to prevent double-icon display; internal API path is unaffected
+
 ## [1.3.0] - 2026-02-22
 
 ### Added

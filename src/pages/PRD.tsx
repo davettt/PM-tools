@@ -6,10 +6,16 @@ import SectionRow from '../components/SectionRow'
 import ImportFromReviewModal from '../components/ImportFromReviewModal'
 import PRDEnhanceModal from '../components/PRDEnhanceModal'
 import type { PRDAcceptedChanges } from '../components/PRDEnhanceModal'
+import PasteAIResponseModal from '../components/PasteAIResponseModal'
+import AIEnhanceDropdown from '../components/AIEnhanceDropdown'
 import { copyPRDMarkdownToClipboard } from '../utils/exportPRDMarkdown'
 import { downloadPRDDocx } from '../utils/exportPRDDocx'
 import { printDocument } from '../utils/exportPrint'
-import { enhancePRD } from '../utils/enhancePRDWithAI'
+import {
+  enhancePRD,
+  buildFullPRDPrompt,
+  parsePRDResponse,
+} from '../utils/enhancePRDWithAI'
 import type {
   PRDForm,
   PRDMeta,
@@ -99,6 +105,8 @@ const PRD = () => {
   const [enhanceResult, setEnhanceResult] =
     useState<PRDEnhancementResult | null>(null)
   const [enhanceError, setEnhanceError] = useState<string | null>(null)
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
 
   const hasInitializedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -221,6 +229,48 @@ const PRD = () => {
   const handleDocx = async () => {
     await handleSave()
     downloadPRDDocx(form, createdAt, modifiedAt)
+  }
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(buildFullPRDPrompt(form))
+    setPromptCopied(true)
+    setTimeout(() => setPromptCopied(false), 2000)
+  }
+
+  const handlePasteResponse = (text: string) => {
+    try {
+      const raw = parsePRDResponse(text)
+      const sf = (f: string) => f.replace(/^⚑\s*/, '').trim()
+      const stripItem = <T extends { flags: string[] }>(item: T): T => ({
+        ...item,
+        flags: item.flags.map(sf),
+      })
+      const stripSection = <T extends { flags: string[] }>(
+        s: T | undefined
+      ): T | undefined => (s ? stripItem(s) : undefined)
+      const result = {
+        ...raw,
+        sections: {
+          overview: stripSection(raw.sections.overview),
+          problemStatement: stripSection(raw.sections.problemStatement),
+          objective: stripSection(raw.sections.objective),
+          notes: stripSection(raw.sections.notes),
+        },
+        successMetrics: raw.successMetrics.map(stripItem),
+        requirements: raw.requirements.map(stripItem),
+        outOfScope: raw.outOfScope.map(stripItem),
+        openQuestions: raw.openQuestions.map(stripItem),
+        scenarios: raw.scenarios.map(stripItem),
+      }
+      setEnhanceResult(result)
+      setShowPasteModal(false)
+      setEnhanceError(null)
+    } catch {
+      setEnhanceError(
+        'Could not parse AI response. Make sure you pasted the full JSON output.'
+      )
+      setShowPasteModal(false)
+    }
   }
 
   // AI Enhancement
@@ -634,38 +684,12 @@ const PRD = () => {
             <span className={`text-sm ${statusColor} min-w-[140px]`}>
               {statusText}
             </span>
-            <button
-              onClick={handleEnhance}
-              disabled={isEnhancing}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors flex items-center gap-1.5"
-            >
-              {isEnhancing ? (
-                <>
-                  <svg
-                    className="animate-spin h-3 w-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Reviewing…
-                </>
-              ) : (
-                'Enhance with AI'
-              )}
-            </button>
+            <AIEnhanceDropdown
+              isEnhancing={isEnhancing}
+              onEnhance={handleEnhance}
+              onCopyPrompt={handleCopyPrompt}
+              onPasteResponse={() => setShowPasteModal(true)}
+            />
             <button
               onClick={handleCopyMarkdown}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
@@ -689,6 +713,12 @@ const PRD = () => {
             For a clean PDF, uncheck <strong>Headers and Footers</strong> in the
             browser print dialog.
           </p>
+          {promptCopied && (
+            <p className="text-sm text-green-600">
+              ✓ Prompt copied — paste into your AI tool, then use "Paste AI
+              response" to import the result.
+            </p>
+          )}
           {enhanceError && (
             <p className="text-sm text-red-500">{enhanceError}</p>
           )}
@@ -1106,6 +1136,13 @@ const PRD = () => {
             setShowImportModal(false)
           }}
           onClose={() => setShowImportModal(false)}
+        />
+      )}
+
+      {showPasteModal && (
+        <PasteAIResponseModal
+          onSubmit={handlePasteResponse}
+          onClose={() => setShowPasteModal(false)}
         />
       )}
 

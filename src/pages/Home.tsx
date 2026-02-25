@@ -27,6 +27,26 @@ const Home = () => {
     fetchPRDs()
   }, [fetchReviews, fetchPRDs])
 
+  const downloadJSON = (data: unknown, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const dateStamp = () => new Date().toISOString().slice(0, 10)
+
+  const handleExportReviews = () =>
+    downloadJSON(reviews, `pm-tools-reviews-${dateStamp()}.json`)
+
+  const handleExportPRDs = () =>
+    downloadJSON(prds, `pm-tools-prds-${dateStamp()}.json`)
+
   const handleDeleteReview = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"?`)) return
     await deleteReview(id)
@@ -59,6 +79,23 @@ const Home = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-900">PM Tools</h1>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPRDs}
+              disabled={prds.length === 0}
+              title="Download a backup of all PRDs"
+              className="px-3 py-2 bg-gray-100 text-gray-500 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Export PRDs
+            </button>
+            <button
+              onClick={handleExportReviews}
+              disabled={reviews.length === 0}
+              title="Download a backup of all code reviews"
+              className="px-3 py-2 bg-gray-100 text-gray-500 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Export Reviews
+            </button>
+            <div className="w-px h-5 bg-gray-200" />
             <button
               onClick={() => navigate('/prd/new')}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"

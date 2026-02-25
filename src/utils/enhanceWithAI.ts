@@ -118,6 +118,12 @@ function parseResponse(text: string): EnhancementResult {
   )
 }
 
+export function buildFullPrompt(form: CodeReviewForm): string {
+  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`
+}
+
+export { parseResponse }
+
 export async function enhanceReview(
   form: CodeReviewForm
 ): Promise<EnhancementResult> {
