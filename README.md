@@ -28,6 +28,26 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 - **Filesystem persistence** — documents saved to `local_data/` via a lightweight Express backend
 - **PWA-ready** — favicon, web manifest, installable as a browser app
 
+## Privacy & Data Protection
+
+PM Tools is designed to be safe for use with internal work documents:
+
+- **All data is stored locally** — documents are saved to `local_data/` on your own machine. Nothing is synced to a cloud service, external database, or third-party storage
+- **No telemetry or analytics** — the app collects no usage data and makes no background network calls
+- **The server runs on localhost only** — the Express backend is a local process accessible only on your machine; it is not exposed to the internet or your network
+- **Export functions are fully offline** — Copy Markdown, Print to PDF, and Download .docx work entirely on-device with no external calls
+
+### AI feature and data handling
+
+The AI enhancement feature has two modes with different data handling profiles:
+
+| Mode | How it works | Data leaves your machine? |
+|---|---|---|
+| **Enhance with AI** (API key) | Sends document content to the Anthropic API | Yes — via your personal Anthropic API key |
+| **Copy prompt / Paste response** | You copy the prompt, run it in your own approved tool, paste the result back | No — the app makes no outbound calls |
+
+For use in organisations with data privacy policies or AI usage governance requirements, the Copy prompt / Paste response workflow allows you to route AI requests through whatever tool your organisation has approved — keeping document content within your approved environment while still getting the same AI enhancement output.
+
 ## Stack
 
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS
@@ -61,7 +81,9 @@ In **dev**, restart `npm run dev` after adding the key. In **production**:
 pm2 restart pm-tools
 ```
 
-### External AI workflow (no API key required)
+### External AI workflow (corporate compliance)
+
+Many organisations restrict the use of personal API keys for work documents due to data privacy policies, AI usage governance, or requirements to route AI requests through approved tools with audit logging and data processing agreements. The external workflow supports this — the app itself makes no outbound AI calls, so work documents stay within whatever AI tool your organisation has approved.
 
 For users who need to use a company-approved AI tool instead of a personal API key:
 
