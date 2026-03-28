@@ -90,7 +90,7 @@ const Home = () => {
             <button
               onClick={handleExportReviews}
               disabled={reviews.length === 0}
-              title="Download a backup of all code reviews"
+              title="Download a backup of all acceptance reviews"
               className="px-3 py-2 bg-gray-100 text-gray-500 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Export Reviews
@@ -106,7 +106,7 @@ const Home = () => {
               onClick={() => navigate('/code-review/new')}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
             >
-              + New Code Review
+              + New Acceptance Review
             </button>
           </div>
         </div>
@@ -136,7 +136,7 @@ const Home = () => {
           <div className="text-center py-20 text-gray-400">
             <p className="text-lg mb-2">No documents yet</p>
             <p className="text-sm">
-              Create a PRD or Code Review to get started
+              Create a PRD or Acceptance Review to get started
             </p>
           </div>
         )}
@@ -191,24 +191,26 @@ const Home = () => {
           </div>
         )}
 
-        {/* Code Reviews */}
+        {/* Acceptance Reviews */}
         {!reviewsError && (reviews.length > 0 || !loading) && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                Code Reviews
+                Acceptance Reviews
               </h2>
               {reviews.length === 0 && !loading && (
                 <button
                   onClick={() => navigate('/code-review/new')}
                   className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  + New Code Review
+                  + New Acceptance Review
                 </button>
               )}
             </div>
             {reviews.length === 0 && !loading ? (
-              <p className="text-sm text-gray-400">No code reviews yet.</p>
+              <p className="text-sm text-gray-400">
+                No acceptance reviews yet.
+              </p>
             ) : (
               <div className="space-y-2">
                 {sortByModified(reviews).map(doc => (

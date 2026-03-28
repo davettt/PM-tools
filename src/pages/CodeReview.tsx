@@ -328,7 +328,7 @@ const CodeReview = () => {
             ← Home
           </button>
           <span className="text-gray-300">|</span>
-          <span className="text-sm text-gray-500">Code Review</span>
+          <span className="text-sm text-gray-500">Acceptance Review</span>
         </div>
       </header>
 

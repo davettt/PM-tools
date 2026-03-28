@@ -9,6 +9,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 - **Document metadata** — Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, Doc Link; Created and Last Updated populated automatically
 - **Import requirements from Code Review** — pull requirements from any saved code review to seed a PRD
 - **AI writing enhancement** — "Enhance with AI" reviews every section for clarity, completeness, and missing specificity; accept or skip per item
+- **Import from Markdown** — paste markdown exported from pm-tools to create a new pre-populated PRD; all sections imported including metadata, scenarios, timeline, and open questions
 - **Export options** — Copy Markdown (with metadata table + timeline table), Print to PDF (compact print-only metadata table), Download .docx
 
 ### Code Review

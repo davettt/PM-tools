@@ -5,6 +5,12 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-03-29
+
+### Added
+- **Import PRD from Markdown** — "Import Markdown" button in the PRD export bar opens a paste modal; parses pm-tools markdown exports and creates a new PRD document pre-populated with all sections (title, metadata, overview, problem statement, goals, scenarios, requirements, out of scope, timeline, open questions, notes); includes validation that the pasted content originated from a pm-tools export; tooltip and modal note warn against importing manually edited or externally generated markdown
+- **Security dependency update** — `path-to-regexp` updated to resolve two high-severity ReDoS vulnerabilities (GHSA-j3q9-mxjg-w52f, GHSA-27v5-c462-wpq7)
+
 ## [1.4.0] - 2026-02-25
 
 ### Added

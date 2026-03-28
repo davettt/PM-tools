@@ -9,6 +9,7 @@ import type { PRDAcceptedChanges } from '../components/PRDEnhanceModal'
 import PasteAIResponseModal from '../components/PasteAIResponseModal'
 import AIEnhanceDropdown from '../components/AIEnhanceDropdown'
 import { copyPRDMarkdownToClipboard } from '../utils/exportPRDMarkdown'
+import ImportPRDMarkdownModal from '../components/ImportPRDMarkdownModal'
 import { downloadPRDDocx } from '../utils/exportPRDDocx'
 import { printDocument } from '../utils/exportPrint'
 import {
@@ -107,6 +108,7 @@ const PRD = () => {
   const [enhanceError, setEnhanceError] = useState<string | null>(null)
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [promptCopied, setPromptCopied] = useState(false)
+  const [showImportMarkdownModal, setShowImportMarkdownModal] = useState(false)
 
   const hasInitializedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -219,6 +221,22 @@ const PRD = () => {
     await copyPRDMarkdownToClipboard(form, createdAt, modifiedAt)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleImportMarkdown = async (parsed: Partial<PRDForm>) => {
+    const now = new Date().toISOString()
+    const newId = uuidv4()
+    const newDoc = {
+      id: newId,
+      type: 'prd' as const,
+      title: parsed.title || 'Imported PRD',
+      createdAt: now,
+      modifiedAt: now,
+      data: { ...emptyForm(), ...parsed },
+    }
+    await saveDocument(newDoc)
+    setShowImportMarkdownModal(false)
+    navigate(`/prd/${newId}`)
   }
 
   const handlePrint = async () => {
@@ -697,6 +715,13 @@ const PRD = () => {
               {copied ? '✓ Copied' : 'Copy Markdown'}
             </button>
             <button
+              onClick={() => setShowImportMarkdownModal(true)}
+              title="Only use this with markdown exported from pm-tools using the Copy Markdown button. Importing manually edited or externally generated markdown may produce unexpected results."
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
+            >
+              Import Markdown
+            </button>
+            <button
               onClick={handlePrint}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
             >
@@ -1143,6 +1168,13 @@ const PRD = () => {
         <PasteAIResponseModal
           onSubmit={handlePasteResponse}
           onClose={() => setShowPasteModal(false)}
+        />
+      )}
+
+      {showImportMarkdownModal && (
+        <ImportPRDMarkdownModal
+          onImport={handleImportMarkdown}
+          onClose={() => setShowImportMarkdownModal(false)}
         />
       )}
 

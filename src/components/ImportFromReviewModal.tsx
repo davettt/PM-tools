@@ -47,7 +47,7 @@ const ImportFromReviewModal = ({
           )
         )
       })
-      .catch(() => setLoadError('Could not load code reviews.'))
+      .catch(() => setLoadError('Could not load acceptance reviews.'))
   }, [])
 
   // Auto-focus and keyboard handling
@@ -140,7 +140,7 @@ const ImportFromReviewModal = ({
             id="import-modal-title"
             className="text-base font-semibold text-gray-900"
           >
-            Import Requirements from Code Review
+            Import Requirements from Acceptance Review
           </h2>
           <button
             onClick={onClose}
@@ -157,14 +157,14 @@ const ImportFromReviewModal = ({
 
           {!loadError && reviews.length === 0 && (
             <p className="text-gray-400 text-sm text-center py-8">
-              No saved code reviews found.
+              No saved acceptance reviews found.
             </p>
           )}
 
           {!selectedReviewId && reviews.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm text-gray-500 mb-3">
-                Select a code review to import requirements from:
+                Select an acceptance review to import requirements from:
               </p>
               {reviews.map(doc => (
                 <button
