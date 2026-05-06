@@ -2,10 +2,17 @@ export type StatusOption = 'VERIFIED' | 'INCOMPLETE' | 'MISSING'
 export type RecommendationStatus = 'OPEN' | 'DONE' | 'WONT_FIX'
 export type GapStatus = 'OPEN' | 'RESOLVED' | 'WONT_DO'
 
+export interface SubtaskItem {
+  id: string
+  status: StatusOption
+  description: string
+}
+
 export interface RequirementItem {
   id: string
   status: StatusOption
   description: string
+  subtasks?: SubtaskItem[]
 }
 
 export interface GapItem {
@@ -68,6 +75,7 @@ export interface SavedDocument {
   title: string
   createdAt: string
   modifiedAt: string
+  deletedAt?: string
   data: CodeReviewForm | PRDForm
 }
 
@@ -92,10 +100,16 @@ export interface PRDScenario {
   content: string
 }
 
+export interface PRDSubtaskItem {
+  id: string
+  description: string
+}
+
 export interface PRDRequirementItem {
   id: string
   description: string
   sourceReviewId?: string
+  subtasks?: PRDSubtaskItem[]
 }
 
 export interface PRDSuccessMetric {

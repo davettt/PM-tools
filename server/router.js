@@ -45,9 +45,16 @@ async function writePrds(prds) {
   await writeFile(PRDS_FILE, JSON.stringify(prds, null, 2), 'utf-8')
 }
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+
+function purgeExpiredDeletes(docs) {
+  const cutoff = Date.now() - SEVEN_DAYS_MS
+  return docs.filter(d => !d.deletedAt || new Date(d.deletedAt).getTime() > cutoff)
+}
+
 export function createApp() {
   const app = express()
-  app.use(express.json())
+  app.use(express.json({ limit: '10mb' }))
   const router = express.Router()
 
   router.get('/api/health', (_req, res) => res.json({ ok: true }))
@@ -90,7 +97,10 @@ export function createApp() {
 
   router.get('/api/reviews', async (_req, res) => {
     try {
-      res.json(await readReviews())
+      const raw = await readReviews()
+      const purged = purgeExpiredDeletes(raw)
+      if (purged.length !== raw.length) await writeReviews(purged)
+      res.json(purged)
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Failed to read reviews' })
@@ -135,6 +145,34 @@ export function createApp() {
     }
   })
 
+  router.patch('/api/reviews/:id/soft-delete', async (req, res) => {
+    try {
+      const reviews = await readReviews()
+      const idx = reviews.findIndex(r => r.id === req.params.id)
+      if (idx === -1) return res.status(404).json({ error: 'Not found' })
+      reviews[idx].deletedAt = new Date().toISOString()
+      await writeReviews(reviews)
+      res.json(reviews[idx])
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to delete review' })
+    }
+  })
+
+  router.patch('/api/reviews/:id/restore', async (req, res) => {
+    try {
+      const reviews = await readReviews()
+      const idx = reviews.findIndex(r => r.id === req.params.id)
+      if (idx === -1) return res.status(404).json({ error: 'Not found' })
+      delete reviews[idx].deletedAt
+      await writeReviews(reviews)
+      res.json(reviews[idx])
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to restore review' })
+    }
+  })
+
   router.delete('/api/reviews/:id', async (req, res) => {
     try {
       const reviews = await readReviews()
@@ -152,7 +190,10 @@ export function createApp() {
 
   router.get('/api/prds', async (_req, res) => {
     try {
-      res.json(await readPrds())
+      const raw = await readPrds()
+      const purged = purgeExpiredDeletes(raw)
+      if (purged.length !== raw.length) await writePrds(purged)
+      res.json(purged)
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Failed to read PRDs' })
@@ -197,6 +238,34 @@ export function createApp() {
     }
   })
 
+  router.patch('/api/prds/:id/soft-delete', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      const idx = prds.findIndex(p => p.id === req.params.id)
+      if (idx === -1) return res.status(404).json({ error: 'Not found' })
+      prds[idx].deletedAt = new Date().toISOString()
+      await writePrds(prds)
+      res.json(prds[idx])
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to delete PRD' })
+    }
+  })
+
+  router.patch('/api/prds/:id/restore', async (req, res) => {
+    try {
+      const prds = await readPrds()
+      const idx = prds.findIndex(p => p.id === req.params.id)
+      if (idx === -1) return res.status(404).json({ error: 'Not found' })
+      delete prds[idx].deletedAt
+      await writePrds(prds)
+      res.json(prds[idx])
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to restore PRD' })
+    }
+  })
+
   router.delete('/api/prds/:id', async (req, res) => {
     try {
       const prds = await readPrds()
@@ -209,6 +278,60 @@ export function createApp() {
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Failed to delete PRD' })
+    }
+  })
+
+  function importDocs(incoming, existing) {
+    const byId = new Map(existing.map(d => [d.id, d]))
+    let added = 0
+    let updated = 0
+    let skipped = 0
+    for (const doc of incoming) {
+      if (!doc.id || typeof doc.id !== 'string' || !doc.modifiedAt || typeof doc.modifiedAt !== 'string') {
+        skipped++
+        continue
+      }
+      const current = byId.get(doc.id)
+      if (!current) {
+        byId.set(doc.id, doc)
+        added++
+      } else if (doc.modifiedAt > current.modifiedAt) {
+        byId.set(doc.id, doc)
+        updated++
+      }
+    }
+    return { merged: [...byId.values()], added, updated, unchanged: incoming.length - added - updated - skipped, skipped }
+  }
+
+  router.post('/api/reviews/import', async (req, res) => {
+    try {
+      const incoming = req.body
+      if (!Array.isArray(incoming)) {
+        return res.status(400).json({ error: 'Expected an array of documents' })
+      }
+      const existing = await readReviews()
+      const { merged, added, updated, unchanged, skipped } = importDocs(incoming, existing)
+      await writeReviews(merged)
+      res.json({ added, updated, unchanged, skipped })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to import reviews' })
+    }
+  })
+
+  router.post('/api/prds/import', async (req, res) => {
+    try {
+      const incoming = req.body
+      if (!Array.isArray(incoming)) {
+        return res.status(400).json({ error: 'Expected an array of documents' })
+      }
+      const existing = await readPrds()
+      const { merged, added, updated, unchanged, skipped } = importDocs(incoming, existing)
+      await writePrds(merged)
+      res.json({ added, updated, unchanged, skipped })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Failed to import PRDs' })
     }
   })
 

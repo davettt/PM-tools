@@ -11,6 +11,19 @@
     color: black;
   }
 
+  main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  main > * + * {
+    margin-top: 0.75rem !important;
+  }
+
+  section {
+    page-break-inside: avoid;
+  }
+
   input,
   textarea,
   select {

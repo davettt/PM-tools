@@ -3,14 +3,15 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import CodeReview from './pages/CodeReview'
 import PRD from './pages/PRD'
+import Settings from './pages/Settings'
 
 function App() {
   const [buildStale, setBuildStale] = useState(false)
 
   useEffect(() => {
     void fetch('/api/build-status')
-      .then((r) => r.json())
-      .then((d) => setBuildStale(d.stale === true))
+      .then(r => r.json())
+      .then(d => setBuildStale(d.stale === true))
       .catch(() => {})
   }, [])
 
@@ -29,6 +30,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/code-review/:id" element={<CodeReview />} />
         <Route path="/prd/:id" element={<PRD />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
   )

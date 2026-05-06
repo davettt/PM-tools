@@ -64,11 +64,8 @@ const ExportBar = ({
 
   return (
     <div className="space-y-2 print:hidden">
+      <p className={`text-sm ${statusColor}`}>{statusText()}</p>
       <div className="flex flex-wrap gap-2 items-center">
-        <span className={`text-sm ${statusColor} min-w-[140px]`}>
-          {statusText()}
-        </span>
-
         <AIEnhanceDropdown
           isEnhancing={isEnhancing}
           onEnhance={onEnhanceClick}

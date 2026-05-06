@@ -23,7 +23,13 @@ const EnhanceModal = ({
   onClose,
 }: EnhanceModalProps) => {
   const originalReqs = Object.fromEntries(
-    form.requirements.map(r => [r.id, r.description])
+    form.requirements.flatMap(r => [
+      [r.id, r.description],
+      ...(r.subtasks ?? []).map(s => [s.id, s.description] as const),
+    ])
+  )
+  const subtaskIds = new Set(
+    form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id))
   )
   const originalGaps = Object.fromEntries(
     form.gaps.map(g => [g.id, g.description])
@@ -281,13 +287,18 @@ const EnhanceModal = ({
                 Requirements
               </h3>
               <div className="divide-y divide-gray-100">
-                {result.requirements.map(item =>
-                  renderItem(
-                    item,
-                    `req-${item.id}`,
-                    originalReqs[item.id] ?? ''
-                  )
-                )}
+                {result.requirements.map(item => (
+                  <div
+                    key={`req-${item.id}`}
+                    className={subtaskIds.has(item.id) ? 'ml-6' : ''}
+                  >
+                    {renderItem(
+                      item,
+                      `req-${item.id}`,
+                      originalReqs[item.id] ?? ''
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
           )}

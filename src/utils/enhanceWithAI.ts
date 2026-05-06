@@ -60,6 +60,9 @@ function buildPrompt(form: CodeReviewForm): string {
   } else {
     for (const r of form.requirements) {
       lines.push(`[${r.id}] ${r.status}: ${r.description}`)
+      for (const sub of r.subtasks ?? []) {
+        lines.push(`  [${sub.id}] ${sub.status}: ${sub.description}`)
+      }
     }
   }
   lines.push('')

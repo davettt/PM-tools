@@ -40,11 +40,13 @@ const ImportFromReviewModal = ({
       })
       .then((docs: SavedDocument[]) => {
         setReviews(
-          [...docs].sort(
-            (a, b) =>
-              new Date(b.modifiedAt).getTime() -
-              new Date(a.modifiedAt).getTime()
-          )
+          docs
+            .filter(d => !d.deletedAt)
+            .sort(
+              (a, b) =>
+                new Date(b.modifiedAt).getTime() -
+                new Date(a.modifiedAt).getTime()
+            )
         )
       })
       .catch(() => setLoadError('Could not load acceptance reviews.'))
@@ -112,6 +114,10 @@ const ImportFromReviewModal = ({
         id: crypto.randomUUID(),
         description: r.description,
         sourceReviewId: selectedReviewId ?? undefined,
+        subtasks: (r.subtasks ?? []).map(s => ({
+          id: crypto.randomUUID(),
+          description: s.description,
+        })),
       }))
     onImport(items)
   }
@@ -209,27 +215,43 @@ const ImportFromReviewModal = ({
                     Select which requirements to import:
                   </p>
                   {requirements.map(req => (
-                    <label
-                      key={req.id}
-                      className="flex gap-3 items-start px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked[req.id] ?? false}
-                        onChange={() => toggleCheck(req.id)}
-                        className="mt-0.5 shrink-0 accent-blue-600"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span
-                          className={`inline-block text-xs px-1.5 py-0.5 rounded font-medium mr-2 ${statusColor[req.status] ?? 'bg-gray-100 text-gray-600'}`}
-                        >
-                          {statusLabel[req.status] ?? req.status}
-                        </span>
-                        <span className="text-sm text-gray-800">
-                          {req.description}
-                        </span>
-                      </div>
-                    </label>
+                    <div key={req.id}>
+                      <label className="flex gap-3 items-start px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked[req.id] ?? false}
+                          onChange={() => toggleCheck(req.id)}
+                          className="mt-0.5 shrink-0 accent-blue-600"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={`inline-block text-xs px-1.5 py-0.5 rounded font-medium mr-2 ${statusColor[req.status] ?? 'bg-gray-100 text-gray-600'}`}
+                          >
+                            {statusLabel[req.status] ?? req.status}
+                          </span>
+                          <span className="text-sm text-gray-800">
+                            {req.description}
+                          </span>
+                        </div>
+                      </label>
+                      {(req.subtasks ?? []).length > 0 && (
+                        <div className="ml-10 space-y-0.5">
+                          {(req.subtasks ?? []).map(sub => (
+                            <p
+                              key={sub.id}
+                              className="text-xs text-gray-500 pl-2 border-l border-gray-200"
+                            >
+                              <span
+                                className={`inline-block text-[10px] px-1 py-0 rounded font-medium mr-1.5 ${statusColor[sub.status] ?? 'bg-gray-100 text-gray-600'}`}
+                              >
+                                {statusLabel[sub.status] ?? sub.status}
+                              </span>
+                              {sub.description}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}

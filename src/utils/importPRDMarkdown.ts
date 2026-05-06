@@ -4,6 +4,7 @@ import type {
   PRDMeta,
   PRDScenario,
   PRDRequirementItem,
+  PRDSubtaskItem,
   PRDSuccessMetric,
   PRDOutOfScopeItem,
   PRDTimelinePhase,
@@ -26,8 +27,9 @@ const META_FIELD_MAP: Record<string, keyof PRDMeta> = {
 function parseMetaTable(text: string): Partial<PRDMeta> {
   const meta: Partial<PRDMeta> = {}
   for (const line of text.split('\n')) {
-    if (!line.startsWith('|')) continue
-    const cells = line
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('|')) continue
+    const cells = trimmed
       .split('|')
       .map(c => c.trim())
       .filter(Boolean)
@@ -51,9 +53,46 @@ function parseBulletList(text: string): string[] {
     .filter(Boolean)
 }
 
+function stripCheckbox(text: string): string {
+  return text.replace(/^\[[ x]\]\s*/, '')
+}
+
+function parseRequirementsList(text: string): PRDRequirementItem[] {
+  const items: PRDRequirementItem[] = []
+  const lines = text.split('\n').filter(l => l.trim().length > 0)
+  let current: PRDRequirementItem | null = null
+  let baseIndent: number | null = null
+
+  for (const line of lines) {
+    const bulletMatch = line.match(/^(\s*)- (.+)/)
+    if (!bulletMatch) continue
+    const indent = bulletMatch[1]!.length
+    const content = bulletMatch[2]!.trim()
+
+    if (baseIndent === null) baseIndent = indent
+
+    if (indent > baseIndent && current) {
+      const desc = stripCheckbox(content)
+      if (desc) {
+        const sub: PRDSubtaskItem = { id: uuidv4(), description: desc }
+        current.subtasks = current.subtasks ?? []
+        current.subtasks.push(sub)
+      }
+    } else {
+      const desc = stripCheckbox(content)
+      if (desc) {
+        current = { id: uuidv4(), description: desc }
+        items.push(current)
+      }
+    }
+  }
+  return items
+}
+
 function stripPlaceholder(text: string): string {
-  if (text.startsWith('_') && text.endsWith('_')) return ''
-  return text
+  const t = text.trim()
+  if (t.startsWith('_') && t.endsWith('_')) return ''
+  return t
 }
 
 function parseGoals(text: string): {
@@ -73,9 +112,8 @@ function parseGoals(text: string): {
 
 function parseScenarios(text: string): PRDScenario[] {
   const scenarios: PRDScenario[] = []
-  // Normalise: if the section starts directly with ### (no preceding newline), add one
-  const normalised = text.startsWith('### ') ? '\n' + text : text
-  const parts = normalised.split(/\n###\s+/)
+  const normalised = text.replace(/^(\s*###\s+)/m, '\n$1')
+  const parts = normalised.split(/\n\s*###\s+/)
   for (const part of parts.slice(1)) {
     const newline = part.indexOf('\n')
     const title = newline === -1 ? part.trim() : part.slice(0, newline).trim()
@@ -88,7 +126,10 @@ function parseScenarios(text: string): PRDScenario[] {
 
 function parseTimelineTable(text: string): PRDTimelinePhase[] {
   const phases: PRDTimelinePhase[] = []
-  const lines = text.split('\n').filter(l => l.startsWith('|'))
+  const lines = text
+    .split('\n')
+    .filter(l => l.trim().startsWith('|'))
+    .map(l => l.trim())
   const headerLine = lines[0] ?? ''
   const hasDeps = headerLine.toLowerCase().includes('dependencies')
   for (const line of lines.slice(2)) {
@@ -111,12 +152,12 @@ function parseTimelineTable(text: string): PRDTimelinePhase[] {
 export function parsePRDMarkdown(markdown: string): Partial<PRDForm> {
   const lines = markdown.split('\n')
 
-  // Title
-  const titleMatch = lines[0]?.match(/^#\s+PRD\s+\[(.+)\]$/)
+  // Title — allow leading whitespace
+  const titleMatch = lines[0]?.trim().match(/^#\s+PRD\s+\[(.+)\]$/)
   const title = titleMatch?.[1] ?? ''
 
   // Preamble (meta table) — everything before the first ## heading
-  const firstH2 = lines.findIndex(l => l.startsWith('## '))
+  const firstH2 = lines.findIndex(l => /^\s*## /.test(l))
   const preamble = firstH2 > 0 ? lines.slice(0, firstH2).join('\n') : ''
   const metaPartial = parseMetaTable(preamble)
   const meta: PRDMeta = {
@@ -132,8 +173,8 @@ export function parsePRDMarkdown(markdown: string): Partial<PRDForm> {
     docLink: metaPartial.docLink ?? '',
   }
 
-  // Split into sections by ## headings
-  const chunks = markdown.split(/^## /m)
+  // Split into sections by ## headings (allow leading whitespace)
+  const chunks = markdown.split(/^\s*## /m)
   const sections: Record<string, string> = {}
   for (const chunk of chunks.slice(1)) {
     const newline = chunk.indexOf('\n')
@@ -148,9 +189,9 @@ export function parsePRDMarkdown(markdown: string): Partial<PRDForm> {
   const { objective, successMetrics } = parseGoals(sections['Goals'] ?? '')
   const scenarios = parseScenarios(sections['How This Works'] ?? '')
 
-  const requirements: PRDRequirementItem[] = parseBulletList(
+  const requirements: PRDRequirementItem[] = parseRequirementsList(
     sections['Requirements'] ?? ''
-  ).map(d => ({ id: uuidv4(), description: d }))
+  )
 
   const outOfScope: PRDOutOfScopeItem[] = parseBulletList(
     sections['Out of Scope'] ?? ''

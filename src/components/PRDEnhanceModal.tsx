@@ -47,7 +47,13 @@ const PRDEnhanceModal = ({
     form.successMetrics.map(m => [m.id, m.metric])
   )
   const originalReqs = Object.fromEntries(
-    form.requirements.map(r => [r.id, r.description])
+    form.requirements.flatMap(r => [
+      [r.id, r.description],
+      ...(r.subtasks ?? []).map(s => [s.id, s.description] as const),
+    ])
+  )
+  const subtaskIds = new Set(
+    form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id))
   )
   const originalOutOfScope = Object.fromEntries(
     form.outOfScope.map(o => [o.id, o.description])
@@ -424,14 +430,19 @@ const PRDEnhanceModal = ({
                 Requirements
               </h3>
               <div className="divide-y divide-gray-100">
-                {result.requirements.map(item =>
-                  renderItem(
-                    `req-${item.id}`,
-                    item.improved,
-                    originalReqs[item.id] ?? '',
-                    item.flags
-                  )
-                )}
+                {result.requirements.map(item => (
+                  <div
+                    key={`req-${item.id}`}
+                    className={subtaskIds.has(item.id) ? 'ml-6' : ''}
+                  >
+                    {renderItem(
+                      `req-${item.id}`,
+                      item.improved,
+                      originalReqs[item.id] ?? '',
+                      item.flags
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
           )}

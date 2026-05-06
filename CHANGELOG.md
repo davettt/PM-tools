@@ -5,6 +5,18 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-05-06
+
+### Added
+- **Requirement subtasks** — both PRD and Acceptance Review requirements now support nested subtasks; add/remove subtasks per requirement with indented rows; subtasks included in all exports (Markdown, PDF, .docx), AI enhancement prompts, import modals, and markdown import/export round-trip
+- **Checkbox exports** — requirements in Markdown export now use `- [ ]` / `- [x]` checkbox format for both parent requirements and subtasks
+- **Soft delete with 7-day retention** — deleting a document from the home page soft-deletes it with a 7-day grace period before permanent deletion; deleted documents shown in a collapsible "Recently Deleted" section with restore and permanent delete options; server auto-purges expired items on fetch
+- **Inline delete confirmation** — replaced native browser `confirm()` dialogs with inline Delete/Cancel and Confirm/Cancel UI matching the mindful-reader pattern
+
+### Changed
+- **Markdown import parser** — now tolerates leading whitespace on all lines (robust to copy-paste from code blocks or editors that add indentation); section headings, meta tables, timeline tables, and bullet lists all handle arbitrary leading whitespace
+- **Import state management** — markdown import now sets form state directly before navigation, preventing a race condition where auto-save could overwrite imported data with empty form state
+
 ## [1.6.0] - 2026-04-15
 
 ### Added

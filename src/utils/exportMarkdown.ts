@@ -38,7 +38,16 @@ export function generateMarkdown(
     lines.push('_No requirements added._')
   } else {
     for (const req of form.requirements) {
-      lines.push(`- ${req.status} — ${req.description}`)
+      const desc = req.description.replace(/\n/g, ' ').trim()
+      if (!desc) continue
+      const check = req.status === 'VERIFIED' ? 'x' : ' '
+      lines.push(`- [${check}] ${req.status} — ${desc}`)
+      for (const sub of req.subtasks ?? []) {
+        const subDesc = sub.description.replace(/\n/g, ' ').trim()
+        if (!subDesc) continue
+        const subCheck = sub.status === 'VERIFIED' ? 'x' : ' '
+        lines.push(`  - [${subCheck}] ${sub.status} — ${subDesc}`)
+      }
     }
   }
   lines.push('')

@@ -16,6 +16,7 @@ import {
 import type {
   CodeReviewForm,
   RequirementItem,
+  SubtaskItem,
   GapItem,
   RecommendationItem,
   OutOfScopeItem,
@@ -89,6 +90,10 @@ const CodeReview = () => {
         return res.json()
       })
       .then((doc: SavedDocument) => {
+        if (doc.deletedAt) {
+          navigate('/', { replace: true })
+          return
+        }
         setForm({ ...emptyForm(), ...(doc.data as CodeReviewForm) })
         setDocId(doc.id)
         setCreatedAt(doc.createdAt)
@@ -96,7 +101,7 @@ const CodeReview = () => {
         hasInitializedRef.current = true
       })
       .catch(() => setLoadError('Could not load review.'))
-  }, [id, isNew])
+  }, [id, isNew, navigate])
 
   const update = useCallback((patch: Partial<CodeReviewForm>) => {
     setForm(prev => ({ ...prev, ...patch }))
@@ -196,7 +201,17 @@ const CodeReview = () => {
     update({
       requirements: form.requirements.map(r => {
         const d = accepted.requirements[r.id]
-        return d !== undefined ? { ...r, description: d } : r
+        const updated = d !== undefined ? { ...r, description: d } : r
+        if (updated.subtasks?.length) {
+          return {
+            ...updated,
+            subtasks: updated.subtasks.map(s => {
+              const sd = accepted.requirements[s.id]
+              return sd !== undefined ? { ...s, description: sd } : s
+            }),
+          }
+        }
+        return updated
       }),
       gaps: [
         ...form.gaps.map(g => {
@@ -231,6 +246,63 @@ const CodeReview = () => {
     })
   const removeRequirement = (id: string) =>
     update({ requirements: form.requirements.filter(r => r.id !== id) })
+
+  const focusLastSubtask = (reqId: string) => {
+    setTimeout(() => {
+      const container = requirementsSectionRef.current?.querySelector(
+        `[data-req-id="${reqId}"]`
+      )
+      const textareas =
+        container?.querySelectorAll<HTMLTextAreaElement>('textarea')
+      textareas?.[textareas.length - 1]?.focus()
+    }, 0)
+  }
+
+  const addSubtask = (reqId: string, focusNew = false) => {
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? {
+              ...r,
+              subtasks: [
+                ...(r.subtasks ?? []),
+                {
+                  id: uuidv4(),
+                  status: 'INCOMPLETE' as const,
+                  description: '',
+                },
+              ],
+            }
+          : r
+      ),
+    })
+    if (focusNew) focusLastSubtask(reqId)
+  }
+  const updateSubtask = (
+    reqId: string,
+    subId: string,
+    patch: Partial<SubtaskItem>
+  ) =>
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? {
+              ...r,
+              subtasks: (r.subtasks ?? []).map(s =>
+                s.id === subId ? { ...s, ...patch } : s
+              ),
+            }
+          : r
+      ),
+    })
+  const removeSubtask = (reqId: string, subId: string) =>
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? { ...r, subtasks: (r.subtasks ?? []).filter(s => s.id !== subId) }
+          : r
+      ),
+    })
 
   const cycleRecStatus = (
     current: RecommendationStatus | undefined
@@ -447,34 +519,114 @@ const CodeReview = () => {
           <h2 className="hidden print:block text-base font-semibold text-gray-700 mb-3 uppercase tracking-wide text-sm">
             Requirements Coverage
           </h2>
-          <div className="space-y-2" ref={requirementsSectionRef}>
+          {/* Print-only requirements list */}
+          {form.requirements.length > 0 && (
+            <ul className="hidden print:block text-sm text-gray-800 space-y-1 list-disc pl-5">
+              {form.requirements.map(req => (
+                <li key={req.id}>
+                  <span
+                    className={`inline-block text-xs px-1.5 py-0.5 rounded font-semibold mr-1.5 ${
+                      req.status === 'VERIFIED'
+                        ? 'bg-green-100 text-green-800'
+                        : req.status === 'MISSING'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {req.status}
+                  </span>
+                  {req.description}
+                  {(req.subtasks ?? []).length > 0 && (
+                    <ul className="list-disc pl-5 mt-0.5 space-y-0.5 text-gray-700">
+                      {(req.subtasks ?? []).map(sub => (
+                        <li key={sub.id}>
+                          <span
+                            className={`inline-block text-xs px-1.5 py-0.5 rounded font-semibold mr-1.5 ${
+                              sub.status === 'VERIFIED'
+                                ? 'bg-green-100 text-green-800'
+                                : sub.status === 'MISSING'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {sub.status}
+                          </span>
+                          {sub.description}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Interactive form — screen only */}
+          <div className="space-y-2 print:hidden" ref={requirementsSectionRef}>
             {form.requirements.map(req => (
-              <SectionRow
-                key={req.id}
-                onRemove={() => removeRequirement(req.id)}
-              >
-                <StatusDropdown
-                  value={req.status}
-                  onChange={(val: StatusOption) =>
-                    updateRequirement(req.id, { status: val })
-                  }
-                />
-                <textarea
-                  rows={1}
-                  value={req.description}
-                  onChange={e =>
-                    updateRequirement(req.id, { description: e.target.value })
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      addRequirement(true)
+              <div key={req.id} data-req-id={req.id}>
+                <SectionRow onRemove={() => removeRequirement(req.id)}>
+                  <StatusDropdown
+                    value={req.status}
+                    onChange={(val: StatusOption) =>
+                      updateRequirement(req.id, { status: val })
                     }
-                  }}
-                  placeholder="Describe the requirement…"
-                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
-                />
-              </SectionRow>
+                  />
+                  <textarea
+                    rows={1}
+                    value={req.description}
+                    onChange={e =>
+                      updateRequirement(req.id, { description: e.target.value })
+                    }
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        addRequirement(true)
+                      }
+                    }}
+                    placeholder="Describe the requirement…"
+                    className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                  />
+                </SectionRow>
+                {(req.subtasks ?? []).map(sub => (
+                  <div key={sub.id} className="ml-8 mt-1">
+                    <SectionRow onRemove={() => removeSubtask(req.id, sub.id)}>
+                      <span className="text-gray-300 text-xs mr-1 shrink-0">
+                        └
+                      </span>
+                      <StatusDropdown
+                        value={sub.status}
+                        onChange={(val: StatusOption) =>
+                          updateSubtask(req.id, sub.id, { status: val })
+                        }
+                      />
+                      <textarea
+                        rows={1}
+                        value={sub.description}
+                        onChange={e =>
+                          updateSubtask(req.id, sub.id, {
+                            description: e.target.value,
+                          })
+                        }
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            addSubtask(req.id, true)
+                          }
+                        }}
+                        placeholder="Describe the subtask…"
+                        className="flex-1 text-sm text-gray-700 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                      />
+                    </SectionRow>
+                  </div>
+                ))}
+                <button
+                  onClick={() => addSubtask(req.id, true)}
+                  className="ml-8 mt-1 text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  + subtask
+                </button>
+              </div>
             ))}
           </div>
           <button

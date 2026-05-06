@@ -9,6 +9,8 @@ interface PRDStore {
   fetchDocuments: () => Promise<void>
   saveDocument: (doc: SavedDocument) => Promise<SavedDocument>
   updateDocument: (doc: SavedDocument) => Promise<SavedDocument>
+  softDeleteDocument: (id: string) => Promise<void>
+  restoreDocument: (id: string) => Promise<void>
   deleteDocument: (id: string) => Promise<void>
 }
 
@@ -20,7 +22,6 @@ export const usePRDStore = create<PRDStore>((set, get) => ({
   fetchDocuments: async () => {
     set({ loading: true, error: null })
 
-    // Read from IndexedDB first — render immediately if cached data exists
     try {
       const cached = await prdsDB.getAll()
       if (cached.length > 0) {
@@ -30,7 +31,6 @@ export const usePRDStore = create<PRDStore>((set, get) => ({
       // Cache miss or error — continue to API fetch
     }
 
-    // Fetch from API (source of truth) and update cache
     try {
       const res = await fetch('/api/prds')
       if (!res.ok) throw new Error('Failed to fetch PRDs')
@@ -68,6 +68,26 @@ export const usePRDStore = create<PRDStore>((set, get) => ({
       documents: get().documents.map(d => (d.id === updated.id ? updated : d)),
     })
     return updated
+  },
+
+  softDeleteDocument: async (id: string) => {
+    const res = await fetch(`/api/prds/${id}/soft-delete`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('Failed to delete PRD')
+    const updated: SavedDocument = await res.json()
+    await prdsDB.put(updated)
+    set({
+      documents: get().documents.map(d => (d.id === id ? updated : d)),
+    })
+  },
+
+  restoreDocument: async (id: string) => {
+    const res = await fetch(`/api/prds/${id}/restore`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('Failed to restore PRD')
+    const updated: SavedDocument = await res.json()
+    await prdsDB.put(updated)
+    set({
+      documents: get().documents.map(d => (d.id === id ? updated : d)),
+    })
   },
 
   deleteDocument: async (id: string) => {

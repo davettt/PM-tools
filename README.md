@@ -5,7 +5,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 ## Features
 
 ### PRD Creator
-- **Full structured form** — Overview, Problem Statement, Goals (objective + success metrics), How This Works (scenarios), Requirements, Out of Scope, Timeline, Open Questions, Notes
+- **Full structured form** — Overview, Problem Statement, Goals (objective + success metrics), How This Works (scenarios), Requirements (with nested subtasks), Out of Scope, Timeline, Open Questions, Notes
 - **Document metadata** — Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, Doc Link; Created and Last Updated populated automatically
 - **Import requirements from Code Review** — pull requirements from any saved code review to seed a PRD
 - **AI writing enhancement** — "Enhance with AI" reviews every section for clarity, completeness, and missing specificity; accept or skip per item
@@ -13,7 +13,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 - **Export options** — Copy Markdown (with metadata table + timeline table), Print to PDF (compact print-only metadata table), Download .docx
 
 ### Code Review
-- **Structured form** — Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
+- **Structured form** — Requirements Coverage (with nested subtasks), Gaps Identified, Recommendations, Out of Scope / Follow-up
 - **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per row
 - **Recommendation status** — click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
 - **Gap status** — click to cycle OPEN (○) → RESOLVED (✓) → WON'T DO (✕); optional note on resolved gaps, optional reason on won't-do gaps
@@ -25,7 +25,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 ### Shared
 - **Auto-save** — debounced 1.5s auto-save after any input; immediate save before any export
 - **Keyboard friendly** — press Enter in any row to add the next item
-- **Home dashboard** — lists all PRDs and Code Reviews sorted by last modified, with delete action
+- **Home dashboard** — lists all PRDs and Code Reviews sorted by last modified; soft delete with 7-day retention before permanent deletion; collapsible "Recently Deleted" section with restore option
 - **Filesystem persistence** — documents saved to `local_data/` via a lightweight Express backend
 - **PWA-ready** — favicon, web manifest, installable as a browser app
 

@@ -80,7 +80,12 @@ export function generatePRDMarkdown(
     lines.push('_No requirements added._')
   } else {
     for (const r of form.requirements) {
-      lines.push(`- ${r.description}`)
+      const desc = r.description.replace(/\n/g, ' ').trim()
+      if (desc) lines.push(`- [ ] ${desc}`)
+      for (const sub of r.subtasks ?? []) {
+        const subDesc = sub.description.replace(/\n/g, ' ').trim()
+        if (subDesc) lines.push(`  - [ ] ${subDesc}`)
+      }
     }
   }
   lines.push('')

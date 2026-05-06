@@ -20,8 +20,8 @@ function heading3(text: string): Paragraph {
   return new Paragraph({ text, heading: HeadingLevel.HEADING_3 })
 }
 
-function bullet(text: string): Paragraph {
-  return new Paragraph({ text, bullet: { level: 0 } })
+function bullet(text: string, level = 0): Paragraph {
+  return new Paragraph({ text, bullet: { level } })
 }
 
 function body(text: string): Paragraph {
@@ -118,6 +118,9 @@ export async function downloadPRDDocx(
   } else {
     for (const r of form.requirements) {
       children.push(bullet(r.description))
+      for (const sub of r.subtasks ?? []) {
+        children.push(bullet(sub.description, 1))
+      }
     }
   }
   children.push(empty())

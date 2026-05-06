@@ -22,6 +22,7 @@ import type {
   PRDMeta,
   PRDScenario,
   PRDRequirementItem,
+  PRDSubtaskItem,
   PRDSuccessMetric,
   PRDOutOfScopeItem,
   PRDTimelinePhase,
@@ -142,6 +143,10 @@ const PRD = () => {
         return res.json()
       })
       .then((doc: SavedDocument) => {
+        if (doc.deletedAt) {
+          navigate('/', { replace: true })
+          return
+        }
         const stored = doc.data as PRDForm
         setForm({
           ...emptyForm(),
@@ -155,7 +160,7 @@ const PRD = () => {
         hasInitializedRef.current = true
       })
       .catch(() => setLoadError('Could not load PRD.'))
-  }, [id, isNew])
+  }, [id, isNew, navigate])
 
   const update = useCallback((patch: Partial<PRDForm>) => {
     setForm(prev => ({ ...prev, ...patch }))
@@ -226,17 +231,24 @@ const PRD = () => {
   const handleImportMarkdown = async (parsed: Partial<PRDForm>) => {
     const now = new Date().toISOString()
     const newId = uuidv4()
+    const mergedData = { ...emptyForm(), ...parsed }
     const newDoc = {
       id: newId,
       type: 'prd' as const,
       title: parsed.title || 'Imported PRD',
       createdAt: now,
       modifiedAt: now,
-      data: { ...emptyForm(), ...parsed },
+      data: mergedData,
     }
     await saveDocument(newDoc)
+    setForm(mergedData)
+    setDocId(newId)
+    setCreatedAt(now)
+    setModifiedAt(now)
+    setIsDirty(false)
+    hasInitializedRef.current = true
     setShowImportMarkdownModal(false)
-    navigate(`/prd/${newId}`)
+    navigate(`/prd/${newId}`, { replace: true })
   }
 
   const handlePrint = async () => {
@@ -329,7 +341,18 @@ const PRD = () => {
     if (Object.keys(accepted.requirements).length > 0) {
       patch.requirements = form.requirements.map(r => {
         const improved = accepted.requirements[r.id]
-        return improved !== undefined ? { ...r, description: improved } : r
+        const updated =
+          improved !== undefined ? { ...r, description: improved } : r
+        if (updated.subtasks?.length) {
+          return {
+            ...updated,
+            subtasks: updated.subtasks.map(s => {
+              const si = accepted.requirements[s.id]
+              return si !== undefined ? { ...s, description: si } : s
+            }),
+          }
+        }
+        return updated
       })
     }
     if (Object.keys(accepted.outOfScope).length > 0) {
@@ -392,6 +415,59 @@ const PRD = () => {
     })
   const removeRequirement = (id: string) =>
     update({ requirements: form.requirements.filter(r => r.id !== id) })
+
+  const focusLastSubtask = (reqId: string) => {
+    setTimeout(() => {
+      const container = requirementsSectionRef.current?.querySelector(
+        `[data-req-id="${reqId}"]`
+      )
+      const textareas =
+        container?.querySelectorAll<HTMLTextAreaElement>('textarea')
+      textareas?.[textareas.length - 1]?.focus()
+    }, 0)
+  }
+
+  const addSubtask = (reqId: string, focusNew = false) => {
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? {
+              ...r,
+              subtasks: [
+                ...(r.subtasks ?? []),
+                { id: uuidv4(), description: '' },
+              ],
+            }
+          : r
+      ),
+    })
+    if (focusNew) focusLastSubtask(reqId)
+  }
+  const updateSubtask = (
+    reqId: string,
+    subId: string,
+    patch: Partial<PRDSubtaskItem>
+  ) =>
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? {
+              ...r,
+              subtasks: (r.subtasks ?? []).map(s =>
+                s.id === subId ? { ...s, ...patch } : s
+              ),
+            }
+          : r
+      ),
+    })
+  const removeSubtask = (reqId: string, subId: string) =>
+    update({
+      requirements: form.requirements.map(r =>
+        r.id === reqId
+          ? { ...r, subtasks: (r.subtasks ?? []).filter(s => s.id !== subId) }
+          : r
+      ),
+    })
 
   // Success metrics
   const addMetric = (focusNew = false) => {
@@ -698,10 +774,8 @@ const PRD = () => {
 
         {/* Export bar */}
         <div className="space-y-2 print:hidden">
+          <p className={`text-sm ${statusColor}`}>{statusText}</p>
           <div className="flex flex-wrap gap-2 items-center">
-            <span className={`text-sm ${statusColor} min-w-[140px]`}>
-              {statusText}
-            </span>
             <AIEnhanceDropdown
               isEnhancing={isEnhancing}
               onEnhance={handleEnhance}
@@ -894,39 +968,93 @@ const PRD = () => {
 
         {/* Requirements */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 print:hidden">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Requirements
             </h2>
             <button
               onClick={() => setShowImportModal(true)}
-              className="text-xs text-blue-600 hover:text-blue-800 transition-colors print:hidden"
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
             >
               Import from Code Review
             </button>
           </div>
-          <div className="space-y-2" ref={requirementsSectionRef}>
+          <h2 className="hidden print:block text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Requirements
+          </h2>
+
+          {/* Print-only requirements list */}
+          {form.requirements.length > 0 && (
+            <ul className="hidden print:block text-sm text-gray-800 space-y-1 list-disc pl-5">
+              {form.requirements.map(req => (
+                <li key={req.id}>
+                  {req.description}
+                  {(req.subtasks ?? []).length > 0 && (
+                    <ul className="list-disc pl-5 mt-0.5 space-y-0.5 text-gray-700">
+                      {(req.subtasks ?? []).map(sub => (
+                        <li key={sub.id}>{sub.description}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Interactive form — screen only */}
+          <div className="space-y-2 print:hidden" ref={requirementsSectionRef}>
             {form.requirements.map(req => (
-              <SectionRow
-                key={req.id}
-                onRemove={() => removeRequirement(req.id)}
-              >
-                <textarea
-                  rows={1}
-                  value={req.description}
-                  onChange={e =>
-                    updateRequirement(req.id, { description: e.target.value })
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      addRequirement(true)
+              <div key={req.id} data-req-id={req.id}>
+                <SectionRow onRemove={() => removeRequirement(req.id)}>
+                  <textarea
+                    rows={1}
+                    value={req.description}
+                    onChange={e =>
+                      updateRequirement(req.id, { description: e.target.value })
                     }
-                  }}
-                  placeholder="Describe the requirement…"
-                  className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
-                />
-              </SectionRow>
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        addRequirement(true)
+                      }
+                    }}
+                    placeholder="Describe the requirement…"
+                    className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                  />
+                </SectionRow>
+                {(req.subtasks ?? []).map(sub => (
+                  <div key={sub.id} className="ml-8 mt-1">
+                    <SectionRow onRemove={() => removeSubtask(req.id, sub.id)}>
+                      <span className="text-gray-300 text-xs mr-1 shrink-0">
+                        └
+                      </span>
+                      <textarea
+                        rows={1}
+                        value={sub.description}
+                        onChange={e =>
+                          updateSubtask(req.id, sub.id, {
+                            description: e.target.value,
+                          })
+                        }
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            addSubtask(req.id, true)
+                          }
+                        }}
+                        placeholder="Describe the subtask…"
+                        className="flex-1 text-sm text-gray-700 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                      />
+                    </SectionRow>
+                  </div>
+                ))}
+                <button
+                  onClick={() => addSubtask(req.id, true)}
+                  className="ml-8 mt-1 text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  + subtask
+                </button>
+              </div>
             ))}
           </div>
           <button
