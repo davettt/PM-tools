@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react';
 
 interface AIEnhanceDropdownProps {
-  isEnhancing: boolean
-  onEnhance: () => void
-  onCopyPrompt: () => void
-  onPasteResponse: () => void
+  isEnhancing: boolean;
+  onEnhance: () => void;
+  onCopyPrompt: () => void;
+  onPasteResponse: () => void;
 }
 
 const AIEnhanceDropdown = ({
@@ -13,28 +13,25 @@ const AIEnhanceDropdown = ({
   onCopyPrompt,
   onPasteResponse,
 }: AIEnhanceDropdownProps) => {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
       }
-    }
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <div ref={containerRef} className="relative">
@@ -46,11 +43,7 @@ const AIEnhanceDropdown = ({
       >
         {isEnhancing ? (
           <>
-            <svg
-              className="animate-spin h-3 w-3"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
               <circle
                 className="opacity-25"
                 cx="12"
@@ -90,35 +83,31 @@ const AIEnhanceDropdown = ({
           <button
             type="button"
             onClick={() => {
-              onEnhance()
-              setOpen(false)
+              onEnhance();
+              setOpen(false);
             }}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Enhance with AI
-            <span className="block text-xs text-gray-400 font-normal">
-              Uses your API key
-            </span>
+            <span className="block text-xs text-gray-400 font-normal">Uses your API key</span>
           </button>
           <div className="border-t border-gray-100 my-1" />
           <button
             type="button"
             onClick={() => {
-              onCopyPrompt()
-              setOpen(false)
+              onCopyPrompt();
+              setOpen(false);
             }}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Copy prompt
-            <span className="block text-xs text-gray-400 font-normal">
-              Paste into any AI tool
-            </span>
+            <span className="block text-xs text-gray-400 font-normal">Paste into any AI tool</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              onPasteResponse()
-              setOpen(false)
+              onPasteResponse();
+              setOpen(false);
             }}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
@@ -130,7 +119,7 @@ const AIEnhanceDropdown = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AIEnhanceDropdown
+export default AIEnhanceDropdown;

@@ -1,0 +1,115 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history for secret scanning
+
+      # Read from .nvmrc, so nvm locally and setup-node here resolve the same
+      # file and cannot disagree. This previously read `node-version: 24`, on
+      # the reasoning that matching the major was enough to get the same npm
+      # major. It is not: a floating major resolves to whatever the newest
+      # Node 24 is, so CI's npm kept drifting ahead of local. npm 11.14.1 omits
+      # optional peer dependencies from the lockfile and 11.19.0 records them,
+      # so `npm ci` failed on packages the lockfile never listed — a break
+      # caused by a Node release nobody here made.
+      #
+      # An exact version in this file would have fixed that, but the value
+      # would live somewhere no local tool reads, leaving drift possible and
+      # merely detected. One file both sides read makes it structural.
+      # Floating both sides does NOT work: they resolve at different moments
+      # and drift independently, which is exactly the failure above.
+      #
+      # .nvmrc is written by `policy scaffold` from `node-lts` in
+      # build-policy/registry.json, which is the version of record; `check`
+      # fails on a mismatch and `doctor` fails when local Node differs. Track
+      # the newest LTS patch, not the newest release: Node 25 ships an older
+      # npm than Node 24, so "newest" can reintroduce the same skew.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: HTML validation
+        run: npm run lint:html --if-present
+
+      - name: CSS validation
+        run: npm run lint:css --if-present
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Type check
+        run: npm run type-check --if-present
+
+      - name: SAST (Semgrep)
+        run: |
+          python3 -m pip install --quiet semgrep
+          semgrep scan --config auto --error --quiet \
+            --exclude-rule javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal \
+            --exclude-rule javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal \
+            --exclude-rule javascript.express.security.audit.express-res-sendfile.express-res-sendfile \
+            --exclude-rule javascript.express.security.audit.remote-property-injection.remote-property-injection \
+            --exclude-rule html.security.audit.missing-integrity.missing-integrity
+
+      # Socket supply-chain scanning is deliberately NOT run here. Every package
+      # reaching the lockfile is already scanned locally by one of two controls:
+      # the `socket npm` wrapper at install time, and a `socket:scan` run over
+      # Dependabot branches before merge. A CI step would re-scan a lockfile that
+      # was cleared before the commit existed, while costing an API quota unit
+      # per run and requiring SOCKET_SECURITY_API_KEY in every repo.
+      #
+      # Re-add it only if a project gains contributors who do not install through
+      # the wrapper, or if Dependabot branches start merging without local review
+      # — those are the cases CI would actually cover.
+
+      - name: Dependency audit
+        run: npm run security
+
+      - name: License check
+        run: npm run licenses
+
+      # Build and tests mirror the local gate order. Without them CI verified
+      # only that the code is well-formed, never that it runs — while the policy
+      # called CI "the same gates re-run on GitHub". Tiers are --if-present, so
+      # a project only runs what it defines; smoke/integration are required to
+      # be self-contained (own port, temp data dir), which is what lets them run
+      # on a runner with nothing already listening.
+      #
+      # deps:check is deliberately absent: it runs
+      # ../build-policy/scripts/check-allowlist.js, a sibling repo that does not
+      # exist in a CI checkout. It stays a local/pre-commit gate.
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Unit tests
+        run: npm run test:unit --if-present
+
+      - name: Smoke tests
+        run: npm run test:smoke --if-present
+
+      - name: Integration tests
+        run: npm run test:integration --if-present
+
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

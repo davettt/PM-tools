@@ -1,3 +1,3 @@
 export function printDocument(): void {
-  window.print()
+  window.print();
 }

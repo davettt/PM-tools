@@ -1,56 +1,45 @@
-import { useState, useEffect, useRef } from 'react'
-import type {
-  SavedDocument,
-  CodeReviewForm,
-  PRDRequirementItem,
-} from '../types'
+import { useState, useEffect, useRef } from 'react';
+import type { SavedDocument, CodeReviewForm, PRDRequirementItem } from '../types';
 
 interface ImportFromReviewModalProps {
-  onImport: (items: PRDRequirementItem[]) => void
-  onClose: () => void
+  onImport: (items: PRDRequirementItem[]) => void;
+  onClose: () => void;
 }
 
 const statusLabel: Record<string, string> = {
   VERIFIED: 'Verified',
   INCOMPLETE: 'Incomplete',
   MISSING: 'Missing',
-}
+};
 
 const statusColor: Record<string, string> = {
   VERIFIED: 'bg-green-100 text-green-700',
   INCOMPLETE: 'bg-yellow-100 text-yellow-700',
   MISSING: 'bg-red-100 text-red-700',
-}
+};
 
-const ImportFromReviewModal = ({
-  onImport,
-  onClose,
-}: ImportFromReviewModalProps) => {
-  const [reviews, setReviews] = useState<SavedDocument[]>([])
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null)
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const modalRef = useRef<HTMLDivElement>(null)
+const ImportFromReviewModal = ({ onImport, onClose }: ImportFromReviewModalProps) => {
+  const [reviews, setReviews] = useState<SavedDocument[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/api/reviews')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to load')
-        return res.json()
+        if (!res.ok) throw new Error('Failed to load');
+        return res.json();
       })
       .then((docs: SavedDocument[]) => {
         setReviews(
           docs
             .filter(d => !d.deletedAt)
-            .sort(
-              (a, b) =>
-                new Date(b.modifiedAt).getTime() -
-                new Date(a.modifiedAt).getTime()
-            )
-        )
+            .sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
+        );
       })
-      .catch(() => setLoadError('Could not load acceptance reviews.'))
-  }, [])
+      .catch(() => setLoadError('Could not load acceptance reviews.'));
+  }, []);
 
   // Auto-focus and keyboard handling
   useEffect(() => {
@@ -59,53 +48,52 @@ const ImportFromReviewModal = ({
         modalRef.current?.querySelectorAll<HTMLElement>(
           'button:not([disabled]), input[type="checkbox"]:not([disabled])'
         ) ?? []
-      )
-    focusable()[0]?.focus()
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
-  const selectedReview = reviews.find(r => r.id === selectedReviewId)
-  const selectedForm = selectedReview?.data as CodeReviewForm | undefined
-  const requirements = selectedForm?.requirements ?? []
+  const selectedReview = reviews.find(r => r.id === selectedReviewId);
+  const selectedForm = selectedReview?.data as CodeReviewForm | undefined;
+  const requirements = selectedForm?.requirements ?? [];
 
   const handleSelectReview = (id: string) => {
-    setSelectedReviewId(id)
-    const doc = reviews.find(r => r.id === id)
-    const reqs = (doc?.data as CodeReviewForm)?.requirements ?? []
-    const initChecked: Record<string, boolean> = {}
+    setSelectedReviewId(id);
+    const doc = reviews.find(r => r.id === id);
+    const reqs = (doc?.data as CodeReviewForm)?.requirements ?? [];
+    const initChecked: Record<string, boolean> = {};
     for (const req of reqs) {
-      initChecked[req.id] = true
+      initChecked[req.id] = true;
     }
-    setChecked(initChecked)
-  }
+    setChecked(initChecked);
+  };
 
-  const toggleCheck = (id: string) =>
-    setChecked(prev => ({ ...prev, [id]: !prev[id] }))
+  const toggleCheck = (id: string) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
 
   const handleImport = () => {
     const items: PRDRequirementItem[] = requirements
@@ -118,18 +106,18 @@ const ImportFromReviewModal = ({
           id: crypto.randomUUID(),
           description: s.description,
         })),
-      }))
-    onImport(items)
-  }
+      }));
+    onImport(items);
+  };
 
-  const selectedCount = Object.values(checked).filter(Boolean).length
+  const selectedCount = Object.values(checked).filter(Boolean).length;
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-AU', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    })
+    });
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -142,10 +130,7 @@ const ImportFromReviewModal = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2
-            id="import-modal-title"
-            className="text-base font-semibold text-gray-900"
-          >
+          <h2 id="import-modal-title" className="text-base font-semibold text-gray-900">
             Import Requirements from Acceptance Review
           </h2>
           <button
@@ -178,9 +163,7 @@ const ImportFromReviewModal = ({
                   onClick={() => handleSelectReview(doc.id)}
                   className="w-full text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                 >
-                  <p className="font-medium text-gray-900 text-sm">
-                    {doc.title || 'Untitled'}
-                  </p>
+                  <p className="font-medium text-gray-900 text-sm">{doc.title || 'Untitled'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Modified {formatDate(doc.modifiedAt)}
                   </p>
@@ -198,9 +181,7 @@ const ImportFromReviewModal = ({
                 >
                   ← Back
                 </button>
-                <span className="text-sm text-gray-500">
-                  {selectedReview?.title || 'Untitled'}
-                </span>
+                <span className="text-sm text-gray-500">{selectedReview?.title || 'Untitled'}</span>
               </div>
 
               {requirements.length === 0 && (
@@ -211,9 +192,7 @@ const ImportFromReviewModal = ({
 
               {requirements.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-500 mb-3">
-                    Select which requirements to import:
-                  </p>
+                  <p className="text-sm text-gray-500 mb-3">Select which requirements to import:</p>
                   {requirements.map(req => (
                     <div key={req.id}>
                       <label className="flex gap-3 items-start px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -229,9 +208,7 @@ const ImportFromReviewModal = ({
                           >
                             {statusLabel[req.status] ?? req.status}
                           </span>
-                          <span className="text-sm text-gray-800">
-                            {req.description}
-                          </span>
+                          <span className="text-sm text-gray-800">{req.description}</span>
                         </div>
                       </label>
                       {(req.subtasks ?? []).length > 0 && (
@@ -281,7 +258,7 @@ const ImportFromReviewModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImportFromReviewModal
+export default ImportFromReviewModal;

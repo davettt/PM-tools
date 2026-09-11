@@ -1,24 +1,20 @@
-import { useState, useEffect, useRef } from 'react'
-import type {
-  PRDForm,
-  PRDEnhancementResult,
-  PRDItemImprovement,
-} from '../types'
+import { useState, useEffect, useRef } from 'react';
+import type { PRDForm, PRDEnhancementResult, PRDItemImprovement } from '../types';
 
 interface PRDEnhanceModalProps {
-  result: PRDEnhancementResult
-  form: PRDForm
-  onApply: (accepted: PRDAcceptedChanges) => void
-  onClose: () => void
+  result: PRDEnhancementResult;
+  form: PRDForm;
+  onApply: (accepted: PRDAcceptedChanges) => void;
+  onClose: () => void;
 }
 
 export interface PRDAcceptedChanges {
-  sections: Record<string, string> // key → improved text (with optional flags appended)
-  successMetrics: Record<string, string>
-  requirements: Record<string, string>
-  outOfScope: Record<string, string>
-  openQuestions: Record<string, string>
-  scenarios: Record<string, string>
+  sections: Record<string, string>; // key → improved text (with optional flags appended)
+  successMetrics: Record<string, string>;
+  requirements: Record<string, string>;
+  outOfScope: Record<string, string>;
+  openQuestions: Record<string, string>;
+  scenarios: Record<string, string>;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -26,75 +22,57 @@ const SECTION_LABELS: Record<string, string> = {
   problemStatement: 'Problem Statement',
   objective: 'Primary Objective',
   notes: 'Notes',
-}
+};
 
-const flagKey = (itemKey: string, i: number) => `${itemKey}-f${i}`
+const flagKey = (itemKey: string, i: number) => `${itemKey}-f${i}`;
 
-const PRDEnhanceModal = ({
-  result,
-  form,
-  onApply,
-  onClose,
-}: PRDEnhanceModalProps) => {
+const PRDEnhanceModal = ({ result, form, onApply, onClose }: PRDEnhanceModalProps) => {
   // Build originals for comparison
   const originalSections: Record<string, string> = {
     overview: form.overview,
     problemStatement: form.problemStatement,
     objective: form.objective,
     notes: form.notes,
-  }
-  const originalMetrics = Object.fromEntries(
-    form.successMetrics.map(m => [m.id, m.metric])
-  )
+  };
+  const originalMetrics = Object.fromEntries(form.successMetrics.map(m => [m.id, m.metric]));
   const originalReqs = Object.fromEntries(
     form.requirements.flatMap(r => [
       [r.id, r.description],
       ...(r.subtasks ?? []).map(s => [s.id, s.description] as const),
     ])
-  )
-  const subtaskIds = new Set(
-    form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id))
-  )
-  const originalOutOfScope = Object.fromEntries(
-    form.outOfScope.map(o => [o.id, o.description])
-  )
-  const originalQuestions = Object.fromEntries(
-    form.openQuestions.map(q => [q.id, q.question])
-  )
-  const originalScenarios = Object.fromEntries(
-    form.scenarios.map(s => [s.id, s.content])
-  )
+  );
+  const subtaskIds = new Set(form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id)));
+  const originalOutOfScope = Object.fromEntries(form.outOfScope.map(o => [o.id, o.description]));
+  const originalQuestions = Object.fromEntries(form.openQuestions.map(q => [q.id, q.question]));
+  const originalScenarios = Object.fromEntries(form.scenarios.map(s => [s.id, s.content]));
 
   const initChecked = () => {
-    const checked: Record<string, boolean> = {}
+    const checked: Record<string, boolean> = {};
     // Text sections
     for (const [key, improvement] of Object.entries(result.sections)) {
       if (improvement) {
-        checked[`section-${key}`] =
-          improvement.improved !== (originalSections[key] ?? '')
+        checked[`section-${key}`] = improvement.improved !== (originalSections[key] ?? '');
       }
     }
     // List items
-    const listGroups: [string, PRDItemImprovement[], Record<string, string>][] =
-      [
-        ['metric', result.successMetrics, originalMetrics],
-        ['req', result.requirements, originalReqs],
-        ['oos', result.outOfScope, originalOutOfScope],
-        ['q', result.openQuestions, originalQuestions],
-        ['scenario', result.scenarios, originalScenarios],
-      ]
+    const listGroups: [string, PRDItemImprovement[], Record<string, string>][] = [
+      ['metric', result.successMetrics, originalMetrics],
+      ['req', result.requirements, originalReqs],
+      ['oos', result.outOfScope, originalOutOfScope],
+      ['q', result.openQuestions, originalQuestions],
+      ['scenario', result.scenarios, originalScenarios],
+    ];
     for (const [prefix, items, originals] of listGroups) {
       for (const item of items) {
-        checked[`${prefix}-${item.id}`] =
-          item.improved !== (originals[item.id] ?? '')
+        checked[`${prefix}-${item.id}`] = item.improved !== (originals[item.id] ?? '');
       }
     }
-    return checked
-  }
+    return checked;
+  };
 
-  const [checked, setChecked] = useState<Record<string, boolean>>(initChecked)
-  const [flagChecked, setFlagChecked] = useState<Record<string, boolean>>({})
-  const modalRef = useRef<HTMLDivElement>(null)
+  const [checked, setChecked] = useState<Record<string, boolean>>(initChecked);
+  const [flagChecked, setFlagChecked] = useState<Record<string, boolean>>({});
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const focusable = () =>
@@ -102,54 +80,46 @@ const PRDEnhanceModal = ({
         modalRef.current?.querySelectorAll<HTMLElement>(
           'button:not([disabled]), input[type="checkbox"]:not([disabled])'
         ) ?? []
-      )
-    focusable()[0]?.focus()
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
-  const toggle = (key: string) =>
-    setChecked(prev => ({ ...prev, [key]: !prev[key] }))
-  const toggleFlag = (key: string) =>
-    setFlagChecked(prev => ({ ...prev, [key]: !prev[key] }))
+  const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleFlag = (key: string) => setFlagChecked(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const totalSelected = Object.values(checked).filter(Boolean).length
+  const totalSelected = Object.values(checked).filter(Boolean).length;
 
-  const buildText = (
-    itemKey: string,
-    base: string,
-    flags: string[]
-  ): string => {
-    const selectedFlags = flags.filter(
-      (_, i) => flagChecked[flagKey(itemKey, i)]
-    )
-    if (selectedFlags.length === 0) return base
-    return `${base} [TODO: ${selectedFlags.join('; ')}]`
-  }
+  const buildText = (itemKey: string, base: string, flags: string[]): string => {
+    const selectedFlags = flags.filter((_, i) => flagChecked[flagKey(itemKey, i)]);
+    if (selectedFlags.length === 0) return base;
+    return `${base} [TODO: ${selectedFlags.join('; ')}]`;
+  };
 
   const handleApply = () => {
     const accepted: PRDAcceptedChanges = {
@@ -159,7 +129,7 @@ const PRDEnhanceModal = ({
       outOfScope: {},
       openQuestions: {},
       scenarios: {},
-    }
+    };
 
     for (const [key, improvement] of Object.entries(result.sections)) {
       if (improvement && checked[`section-${key}`]) {
@@ -167,7 +137,7 @@ const PRDEnhanceModal = ({
           `section-${key}`,
           improvement.improved,
           improvement.flags
-        )
+        );
       }
     }
 
@@ -177,64 +147,41 @@ const PRDEnhanceModal = ({
           `metric-${item.id}`,
           item.improved,
           item.flags
-        )
+        );
       }
     }
     for (const item of result.requirements) {
       if (checked[`req-${item.id}`]) {
-        accepted.requirements[item.id] = buildText(
-          `req-${item.id}`,
-          item.improved,
-          item.flags
-        )
+        accepted.requirements[item.id] = buildText(`req-${item.id}`, item.improved, item.flags);
       }
     }
     for (const item of result.outOfScope) {
       if (checked[`oos-${item.id}`]) {
-        accepted.outOfScope[item.id] = buildText(
-          `oos-${item.id}`,
-          item.improved,
-          item.flags
-        )
+        accepted.outOfScope[item.id] = buildText(`oos-${item.id}`, item.improved, item.flags);
       }
     }
     for (const item of result.openQuestions) {
       if (checked[`q-${item.id}`]) {
-        accepted.openQuestions[item.id] = buildText(
-          `q-${item.id}`,
-          item.improved,
-          item.flags
-        )
+        accepted.openQuestions[item.id] = buildText(`q-${item.id}`, item.improved, item.flags);
       }
     }
     for (const item of result.scenarios) {
       if (checked[`scenario-${item.id}`]) {
-        accepted.scenarios[item.id] = buildText(
-          `scenario-${item.id}`,
-          item.improved,
-          item.flags
-        )
+        accepted.scenarios[item.id] = buildText(`scenario-${item.id}`, item.improved, item.flags);
       }
     }
 
-    onApply(accepted)
-  }
+    onApply(accepted);
+  };
 
-  const renderItem = (
-    itemKey: string,
-    improved: string,
-    original: string,
-    flags: string[]
-  ) => {
-    const hasTextChange = improved !== original
-    const isActionable = hasTextChange || flags.length > 0
-    const isChecked = checked[itemKey] ?? false
+  const renderItem = (itemKey: string, improved: string, original: string, flags: string[]) => {
+    const hasTextChange = improved !== original;
+    const isActionable = hasTextChange || flags.length > 0;
+    const isChecked = checked[itemKey] ?? false;
 
     return (
       <div className={`py-3 ${!isActionable ? 'opacity-40' : ''}`}>
-        <label
-          className={`flex gap-3 ${isActionable ? 'cursor-pointer' : 'cursor-default'}`}
-        >
+        <label className={`flex gap-3 ${isActionable ? 'cursor-pointer' : 'cursor-default'}`}>
           <input
             type="checkbox"
             checked={isChecked}
@@ -243,9 +190,7 @@ const PRDEnhanceModal = ({
             className="mt-0.5 shrink-0 accent-blue-600"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">
-              {improved}
-            </p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{improved}</p>
             {hasTextChange && (
               <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
                 was: &ldquo;{original}&rdquo;
@@ -256,8 +201,8 @@ const PRDEnhanceModal = ({
         {flags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2 ml-6">
             {flags.map((flag, i) => {
-              const fk = flagKey(itemKey, i)
-              const isFlagChecked = flagChecked[fk] ?? false
+              const fk = flagKey(itemKey, i);
+              const isFlagChecked = flagChecked[fk] ?? false;
               return (
                 <button
                   key={i}
@@ -276,21 +221,19 @@ const PRDEnhanceModal = ({
                 >
                   ⚑ {flag}
                 </button>
-              )
+              );
             })}
           </div>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   // Determine if there's anything actionable to show
   const hasAnySectionChange = Object.entries(result.sections).some(
     ([key, imp]) => imp && imp.improved !== (originalSections[key] ?? '')
-  )
-  const hasAnySectionFlag = Object.values(result.sections).some(
-    imp => imp && imp.flags.length > 0
-  )
+  );
+  const hasAnySectionFlag = Object.values(result.sections).some(imp => imp && imp.flags.length > 0);
   const hasAnyListChange = [
     ...result.successMetrics,
     ...result.requirements,
@@ -306,13 +249,13 @@ const PRDEnhanceModal = ({
           originalQuestions[item.id] ??
           originalScenarios[item.id] ??
           '') || item.flags.length > 0
-  )
+  );
 
   const hasAnything =
     hasAnySectionChange ||
     hasAnySectionFlag ||
     hasAnyListChange ||
-    result.missingSections.length > 0
+    result.missingSections.length > 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -325,10 +268,7 @@ const PRDEnhanceModal = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2
-            id="prd-enhance-modal-title"
-            className="text-base font-semibold text-gray-900"
-          >
+          <h2 id="prd-enhance-modal-title" className="text-base font-semibold text-gray-900">
             PRD Review
           </h2>
           <button
@@ -356,7 +296,7 @@ const PRDEnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {Object.entries(result.sections).map(([key, improvement]) => {
-                  if (!improvement) return null
+                  if (!improvement) return null;
                   return (
                     <div key={key}>
                       <p className="text-xs text-gray-400 pt-3 font-medium">
@@ -369,7 +309,7 @@ const PRDEnhanceModal = ({
                         improvement.flags
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             </section>
@@ -402,13 +342,11 @@ const PRDEnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {result.scenarios.map(item => {
-                  const scenario = form.scenarios.find(s => s.id === item.id)
+                  const scenario = form.scenarios.find(s => s.id === item.id);
                   return (
                     <div key={item.id}>
                       {scenario?.title && (
-                        <p className="text-xs text-gray-400 pt-3 font-medium">
-                          {scenario.title}
-                        </p>
+                        <p className="text-xs text-gray-400 pt-3 font-medium">{scenario.title}</p>
                       )}
                       {renderItem(
                         `scenario-${item.id}`,
@@ -417,7 +355,7 @@ const PRDEnhanceModal = ({
                         item.flags
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             </section>
@@ -431,10 +369,7 @@ const PRDEnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {result.requirements.map(item => (
-                  <div
-                    key={`req-${item.id}`}
-                    className={subtaskIds.has(item.id) ? 'ml-6' : ''}
-                  >
+                  <div key={`req-${item.id}`} className={subtaskIds.has(item.id) ? 'ml-6' : ''}>
                     {renderItem(
                       `req-${item.id}`,
                       item.improved,
@@ -492,8 +427,7 @@ const PRDEnhanceModal = ({
                 Attention Required
               </h3>
               <p className="text-xs text-gray-400 mb-2">
-                These sections need your attention — they cannot be filled in
-                automatically.
+                These sections need your attention — they cannot be filled in automatically.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg divide-y divide-amber-100">
                 {result.missingSections.map((note, i) => (
@@ -527,7 +461,7 @@ const PRDEnhanceModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PRDEnhanceModal
+export default PRDEnhanceModal;

@@ -1,32 +1,32 @@
-import { config } from 'dotenv'
-config()
-import express from 'express'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { createApp } from './router.js'
-import { buildStale } from './buildCheck.js'
+import { config } from 'dotenv';
+config();
+import express from 'express';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { createApp } from './router.js';
+import { buildStale } from './buildCheck.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const PORT = process.env.PORT ?? 3004
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PORT = process.env.PORT ?? 3004;
 
-const app = express()
+const app = express();
 
 app.get('/api/build-status', (_req, res) => {
-  res.json({ stale: buildStale })
-})
+  res.json({ stale: buildStale });
+});
 
 // API routes
-app.use(createApp())
+app.use(createApp());
 
 // Serve built frontend
-const distPath = join(__dirname, '..', 'dist')
-app.use(express.static(distPath))
+const distPath = join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
 
 // SPA fallback
 app.get('/{*path}', (_req, res) => {
-  res.sendFile(join(distPath, 'index.html'))
-})
+  res.sendFile(join(distPath, 'index.html'));
+});
 
 app.listen(PORT, () => {
-  console.log(`PM Tools running on http://localhost:${PORT}`)
-})
+  console.log(`PM Tools running on http://localhost:${PORT}`);
+});

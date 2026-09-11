@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
-import CodeReview from './pages/CodeReview'
-import PRD from './pages/PRD'
-import Settings from './pages/Settings'
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import CodeReview from './pages/CodeReview';
+import PRD from './pages/PRD';
+import Settings from './pages/Settings';
 
 function App() {
-  const [buildStale, setBuildStale] = useState(false)
+  const [buildStale, setBuildStale] = useState(false);
 
   useEffect(() => {
     void fetch('/api/build-status')
       .then(r => r.json())
       .then(d => setBuildStale(d.stale === true))
-      .catch(() => {})
-  }, [])
+      .catch(() => {});
+  }, []);
 
   return (
     <BrowserRouter>
@@ -33,7 +33,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

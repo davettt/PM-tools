@@ -1,4 +1,4 @@
-import type { PRDForm, PRDEnhancementResult } from '../types'
+import type { PRDForm, PRDEnhancementResult } from '../types';
 
 const SYSTEM_PROMPT = `You are a PM writing coach. Review this PRD and provide structured improvements. Your job is to raise the quality of each section to meet PM standards — not to rewrite the product vision or invent content the author did not intend.
 
@@ -82,132 +82,128 @@ Return ONLY valid JSON with no markdown formatting and no explanation, in this e
   "openQuestions": [{"id":"...","improved":"...","flags":[]}],
   "scenarios": [{"id":"...","improved":"...","flags":[]}],
   "missingSections": ["..."]
-}`
+}`;
 
 function buildPrompt(form: PRDForm): string {
-  const lines: string[] = []
-  lines.push(`PRD Title: ${form.title || 'Untitled'}`)
-  lines.push('')
+  const lines: string[] = [];
+  lines.push(`PRD Title: ${form.title || 'Untitled'}`);
+  lines.push('');
 
-  lines.push('OVERVIEW:')
-  lines.push(form.overview || '(empty)')
-  lines.push('')
+  lines.push('OVERVIEW:');
+  lines.push(form.overview || '(empty)');
+  lines.push('');
 
-  lines.push('PROBLEM STATEMENT:')
-  lines.push(form.problemStatement || '(empty)')
-  lines.push('')
+  lines.push('PROBLEM STATEMENT:');
+  lines.push(form.problemStatement || '(empty)');
+  lines.push('');
 
-  lines.push('OBJECTIVE:')
-  lines.push(form.objective || '(empty)')
-  lines.push('')
+  lines.push('OBJECTIVE:');
+  lines.push(form.objective || '(empty)');
+  lines.push('');
 
-  lines.push('SUCCESS METRICS:')
+  lines.push('SUCCESS METRICS:');
   if (form.successMetrics.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const m of form.successMetrics) {
-      lines.push(`[${m.id}] ${m.metric}`)
+      lines.push(`[${m.id}] ${m.metric}`);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('HOW THIS WORKS (SCENARIOS):')
+  lines.push('HOW THIS WORKS (SCENARIOS):');
   if (form.scenarios.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const s of form.scenarios) {
-      lines.push(`[${s.id}] ${s.title || 'Scenario'}:`)
-      lines.push(s.content || '(empty)')
+      lines.push(`[${s.id}] ${s.title || 'Scenario'}:`);
+      lines.push(s.content || '(empty)');
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('REQUIREMENTS:')
+  lines.push('REQUIREMENTS:');
   if (form.requirements.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const r of form.requirements) {
-      lines.push(`[${r.id}] ${r.description}`)
+      lines.push(`[${r.id}] ${r.description}`);
       for (const sub of r.subtasks ?? []) {
-        lines.push(`  [${sub.id}] ${sub.description}`)
+        lines.push(`  [${sub.id}] ${sub.description}`);
       }
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('OUT OF SCOPE:')
+  lines.push('OUT OF SCOPE:');
   if (form.outOfScope.length === 0) {
-    lines.push('(empty)')
+    lines.push('(empty)');
   } else {
     for (const o of form.outOfScope) {
-      lines.push(`[${o.id}] ${o.description}`)
+      lines.push(`[${o.id}] ${o.description}`);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('TIMELINE:')
+  lines.push('TIMELINE:');
   if (form.timeline.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const t of form.timeline) {
-      const parts = [t.name, t.dates, t.deliverables, t.dependencies]
-        .filter(Boolean)
-        .join(' | ')
-      lines.push(parts)
+      const parts = [t.name, t.dates, t.deliverables, t.dependencies].filter(Boolean).join(' | ');
+      lines.push(parts);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('OPEN QUESTIONS:')
+  lines.push('OPEN QUESTIONS:');
   if (form.openQuestions.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const q of form.openQuestions) {
-      lines.push(`[${q.id}] ${q.question}`)
+      lines.push(`[${q.id}] ${q.question}`);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('NOTES:')
-  lines.push(form.notes || '(empty)')
+  lines.push('NOTES:');
+  lines.push(form.notes || '(empty)');
 
-  return lines.join('\n')
+  return lines.join('\n');
 }
 
 function parseResponse(text: string): PRDEnhancementResult {
   try {
-    return JSON.parse(text) as PRDEnhancementResult
+    return JSON.parse(text) as PRDEnhancementResult;
   } catch {
     // continue
   }
 
-  const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '')
+  const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '');
   try {
-    return JSON.parse(stripped) as PRDEnhancementResult
+    return JSON.parse(stripped) as PRDEnhancementResult;
   } catch {
     // continue
   }
 
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
   if (start !== -1 && end > start) {
     try {
-      return JSON.parse(text.slice(start, end + 1)) as PRDEnhancementResult
+      return JSON.parse(text.slice(start, end + 1)) as PRDEnhancementResult;
     } catch {
       // continue
     }
   }
 
-  throw new Error(
-    'AI returned an unexpected response format. Please try again.'
-  )
+  throw new Error('AI returned an unexpected response format. Please try again.');
 }
 
 export function buildFullPRDPrompt(form: PRDForm): string {
-  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`
+  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`;
 }
 
-export { parseResponse as parsePRDResponse }
+export { parseResponse as parsePRDResponse };
 
 export async function enhancePRD(form: PRDForm): Promise<PRDEnhancementResult> {
   const response = await fetch('/api/ai', {
@@ -217,20 +213,17 @@ export async function enhancePRD(form: PRDForm): Promise<PRDEnhancementResult> {
       systemPrompt: SYSTEM_PROMPT,
       prompt: buildPrompt(form),
     }),
-  })
+  });
 
-  const data = await response.json()
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      (data as { error?: string }).error ?? 'AI enhancement failed'
-    )
+    throw new Error((data as { error?: string }).error ?? 'AI enhancement failed');
   }
 
-  const text = (data as { content: { type: string; text: string }[] })
-    .content[0]?.text
+  const text = (data as { content: { type: string; text: string }[] }).content[0]?.text;
 
-  if (!text) throw new Error('Empty response from AI')
+  if (!text) throw new Error('Empty response from AI');
 
-  return parseResponse(text)
+  return parseResponse(text);
 }

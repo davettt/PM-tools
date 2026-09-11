@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useReviewStore } from '../stores/reviewStore'
-import { usePRDStore } from '../stores/prdStore'
-import type { SavedDocument } from '../types'
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useReviewStore } from '../stores/reviewStore';
+import { usePRDStore } from '../stores/prdStore';
+import type { SavedDocument } from '../types';
 
 const Home = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const {
     documents: reviews,
     loading: reviewsLoading,
@@ -14,7 +14,7 @@ const Home = () => {
     softDeleteDocument: softDeleteReview,
     restoreDocument: restoreReview,
     deleteDocument: deleteReview,
-  } = useReviewStore()
+  } = useReviewStore();
 
   const {
     documents: prds,
@@ -24,54 +24,45 @@ const Home = () => {
     softDeleteDocument: softDeletePRD,
     restoreDocument: restorePRD,
     deleteDocument: deletePRD,
-  } = usePRDStore()
+  } = usePRDStore();
 
   useEffect(() => {
-    fetchReviews()
-    fetchPRDs()
-  }, [fetchReviews, fetchPRDs])
+    fetchReviews();
+    fetchPRDs();
+  }, [fetchReviews, fetchPRDs]);
 
-  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
-  const [confirmingPermanent, setConfirmingPermanent] = useState<string | null>(
-    null
-  )
-  const [deletedOpen, setDeletedOpen] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [confirmingPermanent, setConfirmingPermanent] = useState<string | null>(null);
+  const [deletedOpen, setDeletedOpen] = useState(false);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-AU', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    })
+    });
 
   const daysUntilPurge = (deletedAt: string) => {
-    const deleteDate = new Date(deletedAt)
-    const purgeDate = new Date(deleteDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    purgeDate.setHours(0, 0, 0, 0)
-    const diff = purgeDate.getTime() - today.getTime()
-    return Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)))
-  }
+    const deleteDate = new Date(deletedAt);
+    const purgeDate = new Date(deleteDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    purgeDate.setHours(0, 0, 0, 0);
+    const diff = purgeDate.getTime() - today.getTime();
+    return Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+  };
 
   const sortByModified = (docs: SavedDocument[]) =>
-    [...docs].sort(
-      (a, b) =>
-        new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime()
-    )
+    [...docs].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
 
-  const activePRDs = prds.filter(d => !d.deletedAt)
-  const activeReviews = reviews.filter(d => !d.deletedAt)
-  const deletedDocs = [
-    ...prds.filter(d => d.deletedAt),
-    ...reviews.filter(d => d.deletedAt),
-  ].sort(
-    (a, b) =>
-      new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime()
-  )
+  const activePRDs = prds.filter(d => !d.deletedAt);
+  const activeReviews = reviews.filter(d => !d.deletedAt);
+  const deletedDocs = [...prds.filter(d => d.deletedAt), ...reviews.filter(d => d.deletedAt)].sort(
+    (a, b) => new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime()
+  );
 
-  const loading = reviewsLoading || prdsLoading
-  const bothEmpty = activePRDs.length === 0 && activeReviews.length === 0
+  const loading = reviewsLoading || prdsLoading;
+  const bothEmpty = activePRDs.length === 0 && activeReviews.length === 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,17 +106,15 @@ const Home = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
-        {loading && (
-          <p className="text-gray-500 text-sm">Connecting to local server…</p>
-        )}
+        {loading && <p className="text-gray-500 text-sm">Connecting to local server…</p>}
 
         {(reviewsError || prdsError) && (
           <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700 text-sm space-y-2">
             <p>Failed to load documents. Try refreshing the page.</p>
             <button
               onClick={() => {
-                fetchReviews()
-                fetchPRDs()
+                fetchReviews();
+                fetchPRDs();
               }}
               className="text-red-700 underline text-sm hover:text-red-900"
             >
@@ -137,9 +126,7 @@ const Home = () => {
         {!loading && !reviewsError && !prdsError && bothEmpty && (
           <div className="text-center py-20 text-gray-400">
             <p className="text-lg mb-2">No documents yet</p>
-            <p className="text-sm">
-              Create a PRD or Acceptance Review to get started
-            </p>
+            <p className="text-sm">Create a PRD or Acceptance Review to get started</p>
           </div>
         )}
 
@@ -147,9 +134,7 @@ const Home = () => {
         {!prdsError && (activePRDs.length > 0 || !loading) && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                PRDs
-              </h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">PRDs</h2>
               {activePRDs.length === 0 && !loading && (
                 <button
                   onClick={() => navigate('/prd/new')}
@@ -168,13 +153,8 @@ const Home = () => {
                     key={doc.id}
                     className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between hover:border-gray-300 transition-colors"
                   >
-                    <button
-                      onClick={() => navigate(`/prd/${doc.id}`)}
-                      className="flex-1 text-left"
-                    >
-                      <p className="font-medium text-gray-900">
-                        {doc.title || 'Untitled PRD'}
-                      </p>
+                    <button onClick={() => navigate(`/prd/${doc.id}`)} className="flex-1 text-left">
+                      <p className="font-medium text-gray-900">{doc.title || 'Untitled PRD'}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         Modified {formatDate(doc.modifiedAt)}
                       </p>
@@ -183,8 +163,8 @@ const Home = () => {
                       <span className="flex items-center gap-2 ml-4">
                         <button
                           onClick={async () => {
-                            await softDeletePRD(doc.id)
-                            setConfirmingDelete(null)
+                            await softDeletePRD(doc.id);
+                            setConfirmingDelete(null);
                           }}
                           className="text-xs text-red-500 hover:text-red-600 transition-colors"
                         >
@@ -230,9 +210,7 @@ const Home = () => {
               )}
             </div>
             {activeReviews.length === 0 && !loading ? (
-              <p className="text-sm text-gray-400">
-                No acceptance reviews yet.
-              </p>
+              <p className="text-sm text-gray-400">No acceptance reviews yet.</p>
             ) : (
               <div className="space-y-2">
                 {sortByModified(activeReviews).map(doc => (
@@ -244,9 +222,7 @@ const Home = () => {
                       onClick={() => navigate(`/code-review/${doc.id}`)}
                       className="flex-1 text-left"
                     >
-                      <p className="font-medium text-gray-900">
-                        {doc.title || 'Untitled'}
-                      </p>
+                      <p className="font-medium text-gray-900">{doc.title || 'Untitled'}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         Modified {formatDate(doc.modifiedAt)}
                       </p>
@@ -255,8 +231,8 @@ const Home = () => {
                       <span className="flex items-center gap-2 ml-4">
                         <button
                           onClick={async () => {
-                            await softDeleteReview(doc.id)
-                            setConfirmingDelete(null)
+                            await softDeleteReview(doc.id);
+                            setConfirmingDelete(null);
                           }}
                           className="text-xs text-red-500 hover:text-red-600 transition-colors"
                         >
@@ -305,11 +281,9 @@ const Home = () => {
             {deletedOpen && (
               <div className="space-y-2 mt-4">
                 {deletedDocs.map(doc => {
-                  const days = daysUntilPurge(doc.deletedAt!)
-                  const restore =
-                    doc.type === 'prd' ? restorePRD : restoreReview
-                  const permanentDelete =
-                    doc.type === 'prd' ? deletePRD : deleteReview
+                  const days = daysUntilPurge(doc.deletedAt!);
+                  const restore = doc.type === 'prd' ? restorePRD : restoreReview;
+                  const permanentDelete = doc.type === 'prd' ? deletePRD : deleteReview;
                   return (
                     <div
                       key={doc.id}
@@ -323,14 +297,13 @@ const Home = () => {
                           </span>
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          Permanently deleted in {days}{' '}
-                          {days === 1 ? 'day' : 'days'}
+                          Permanently deleted in {days} {days === 1 ? 'day' : 'days'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 ml-4">
                         <button
                           onClick={async () => {
-                            await restore(doc.id)
+                            await restore(doc.id);
                           }}
                           className="text-xs text-blue-500 hover:text-blue-600 transition-colors"
                         >
@@ -340,8 +313,8 @@ const Home = () => {
                           <span className="flex items-center gap-2">
                             <button
                               onClick={async () => {
-                                await permanentDelete(doc.id)
-                                setConfirmingPermanent(null)
+                                await permanentDelete(doc.id);
+                                setConfirmingPermanent(null);
                               }}
                               className="text-xs text-red-500 hover:text-red-600 transition-colors"
                             >
@@ -364,7 +337,7 @@ const Home = () => {
                         )}
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -372,7 +345,7 @@ const Home = () => {
         )}
       </main>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;

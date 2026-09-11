@@ -7,42 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.7.0] - 2026-05-06
 
+### Changed
+
+- Updated Prettier config to house baseline (semi: true, printWidth: 100) and reformatted codebase
+- Made server DATA_DIR configurable via environment variable for test isolation
+- Updated react-router, concurrently, and qs dependencies to fix security vulnerabilities
+
 ### Added
+
+- Policy compliance infrastructure: husky pre-commit hook, GitHub Actions CI, Dependabot config, AGENTS.md
+- Dependency allowlist (allowed-packages.json) and security scanning scripts (SAST, secrets, licenses, Socket)
+- HTML validation with html-validate
+- Smoke test suite with isolated test harness (tests/harness.js, tests/smoke.js)
+- Added eslint-plugin-security, husky, license-checker, html-validate devDependencies
+- Added .nvmrc pinning Node 24.20.0
 - **Requirement subtasks** — both PRD and Acceptance Review requirements now support nested subtasks; add/remove subtasks per requirement with indented rows; subtasks included in all exports (Markdown, PDF, .docx), AI enhancement prompts, import modals, and markdown import/export round-trip
 - **Checkbox exports** — requirements in Markdown export now use `- [ ]` / `- [x]` checkbox format for both parent requirements and subtasks
 - **Soft delete with 7-day retention** — deleting a document from the home page soft-deletes it with a 7-day grace period before permanent deletion; deleted documents shown in a collapsible "Recently Deleted" section with restore and permanent delete options; server auto-purges expired items on fetch
 - **Inline delete confirmation** — replaced native browser `confirm()` dialogs with inline Delete/Cancel and Confirm/Cancel UI matching the mindful-reader pattern
 
 ### Changed
+
 - **Markdown import parser** — now tolerates leading whitespace on all lines (robust to copy-paste from code blocks or editors that add indentation); section headings, meta tables, timeline tables, and bullet lists all handle arbitrary leading whitespace
 - **Import state management** — markdown import now sets form state directly before navigation, preventing a race condition where auto-save could overwrite imported data with empty form state
 
 ## [1.6.0] - 2026-04-15
 
 ### Added
+
 - **Stale build detection** — amber banner in the UI (and server-side console warning) prompts `npm run restart:pm2` when files in `src/` or `server/` have changed since the last build; new `GET /api/build-status` endpoint and `.last-build` marker written by `npm run build`
 
 ## [1.5.0] - 2026-03-29
 
 ### Added
+
 - **Import PRD from Markdown** — "Import Markdown" button in the PRD export bar opens a paste modal; parses pm-tools markdown exports and creates a new PRD document pre-populated with all sections (title, metadata, overview, problem statement, goals, scenarios, requirements, out of scope, timeline, open questions, notes); includes validation that the pasted content originated from a pm-tools export; tooltip and modal note warn against importing manually edited or externally generated markdown
 - **Security dependency update** — `path-to-regexp` updated to resolve two high-severity ReDoS vulnerabilities (GHSA-j3q9-mxjg-w52f, GHSA-27v5-c462-wpq7)
 
 ## [1.4.0] - 2026-02-25
 
 ### Added
+
 - **AI Enhance dropdown** — "Enhance with AI" replaced with a grouped "AI Enhance ▾" dropdown on both PRD and Code Review; contains three options: Enhance with AI, Copy prompt, and Paste AI response
 - **External AI workflow** — "Copy prompt" copies the full system instructions and structured document text to clipboard for pasting into any approved AI tool; "Paste AI response" opens a modal to import the JSON output back in, feeding the same accept/reject UI as the internal flow
 - **Backup export** — Home page now shows "Export Reviews" and "Export PRDs" buttons; each downloads a dated JSON file (e.g. `pm-tools-reviews-2026-02-25.json`) identical in format to `local_data/` for easy restore; buttons are disabled when the respective list is empty
 - **Restore instructions** — README Data section updated with step-by-step restore procedure and backup best practices
 
 ### Changed
+
 - **AI Enhance button styling** — button now matches the visual style of other export buttons (gray, outlined) rather than blue, keeping the export bar visually consistent
 - **External AI flag normalisation** — flags returned from external AI tools with a leading ⚑ symbol in the text are stripped on import to prevent double-icon display; internal API path is unaffected
 
 ## [1.3.0] - 2026-02-22
 
 ### Added
+
 - **PRD document metadata** — editable header block with Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, and Doc Link; Created and Last Updated populated from save timestamps; renders as a compact 4-column paired table in PDF export and as a markdown table in Copy Markdown
 - **Code Review document metadata** — Author, Role, Related PRD, and Related Issue fields; renders as a table in PDF export and as bold key-value lines in Markdown and .docx exports
 - **Import requirements from PRD into Code Review** — "Import from PRD" button in the Requirements Coverage header opens a modal to select a saved PRD and choose which requirements to import; imported items default to INCOMPLETE status
@@ -50,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Timeline table in Markdown export** — Copy Markdown now outputs the Timeline section as a markdown table matching the PDF layout
 
 ### Changed
+
 - **Home page new-document buttons** — New PRD and New Code Review now use the same outlined style; no document type is visually elevated as primary (scales cleanly when more doc types are added)
 - **PRD metadata in .docx export** — bold key-value pairs after the title for all non-empty metadata fields including Design Lead and PMM
 - **Metadata tables** — both PRD and Code Review print-only metadata use bordered HTML tables for compact, readable layout
@@ -57,22 +77,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-02-21
 
 ### Added
+
 - **Gap WONT_DO status** — gap toggle now cycles three states: OPEN (○) → RESOLVED (✓) → WON'T DO (✕), matching the existing three-state pattern on recommendations
 - **Reason field for WONT_DO gaps** — optional italic field appears below the gap description to record why it won't be addressed
 - **Note field for RESOLVED gaps** — optional italic field to record what was done to address the gap, keeping the gap description clean
 - **Reason field for WONT_FIX recommendations** — same pattern as WONT_DO gaps
 
 ### Changed
+
 - **Markdown export (gaps)** — gaps now use `[ ]` for open and `[x]` for resolved, consistent with recommendations; resolved note and won't-do reason appended inline
 - **Docx export (gaps)** — gap status prefix (`[Resolved]`, `[Won't Do]`) includes reason/note where present
 
 ### Fixed
+
 - **EnhanceModal empty state** — shows "No improvements found — this review looks good as-is." when AI finds no actionable changes
 - **EnhanceModal accessibility** — added `role="dialog"`, `aria-modal`, `aria-labelledby`, Escape key to close, auto-focus on open, and Tab focus trap
 
 ## [1.1.0] - 2026-02-21
 
 ### Added
+
 - **AI writing enhancement** — "Enhance with AI" button in ExportBar sends the review to Claude Haiku for a PM writing pass
 - **EnhanceModal** — per-item diff view with checkboxes; improved text shown prominently with original text as `was: "…"` for changed items; amber flag badges for items missing critical specificity; advisory "Missing Coverage" callout for cross-cutting gaps
 - **Anthropic API proxy** — `POST /api/ai` server endpoint keeps API key server-side; returns 503 with actionable error if key is absent
@@ -81,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-21
 
 ### Added
+
 - **Code review form** — structured sections: Requirements Coverage, Gaps Identified, Recommendations, Out of Scope / Follow-up
 - **Requirement status dropdown** — VERIFIED / INCOMPLETE / MISSING per row
 - **Recommendation status cycling** — click icon to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕) with strikethrough styling

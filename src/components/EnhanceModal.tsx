@@ -1,70 +1,51 @@
-import { useState, useEffect, useRef } from 'react'
-import type {
-  CodeReviewForm,
-  EnhancementResult,
-  EnhancementItem,
-  AcceptedChanges,
-} from '../types'
+import { useState, useEffect, useRef } from 'react';
+import type { CodeReviewForm, EnhancementResult, EnhancementItem, AcceptedChanges } from '../types';
 
 interface EnhanceModalProps {
-  result: EnhancementResult
-  form: CodeReviewForm
-  onApply: (accepted: AcceptedChanges) => void
-  onClose: () => void
+  result: EnhancementResult;
+  form: CodeReviewForm;
+  onApply: (accepted: AcceptedChanges) => void;
+  onClose: () => void;
 }
 
 // Flag key: `{itemKey}-f{flagIndex}` e.g. `req-abc123-f0`
-const flagKey = (itemKey: string, i: number) => `${itemKey}-f${i}`
+const flagKey = (itemKey: string, i: number) => `${itemKey}-f${i}`;
 
-const EnhanceModal = ({
-  result,
-  form,
-  onApply,
-  onClose,
-}: EnhanceModalProps) => {
+const EnhanceModal = ({ result, form, onApply, onClose }: EnhanceModalProps) => {
   const originalReqs = Object.fromEntries(
     form.requirements.flatMap(r => [
       [r.id, r.description],
       ...(r.subtasks ?? []).map(s => [s.id, s.description] as const),
     ])
-  )
-  const subtaskIds = new Set(
-    form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id))
-  )
-  const originalGaps = Object.fromEntries(
-    form.gaps.map(g => [g.id, g.description])
-  )
-  const originalRecs = Object.fromEntries(
-    form.recommendations.map(r => [r.id, r.description])
-  )
+  );
+  const subtaskIds = new Set(form.requirements.flatMap(r => (r.subtasks ?? []).map(s => s.id)));
+  const originalGaps = Object.fromEntries(form.gaps.map(g => [g.id, g.description]));
+  const originalRecs = Object.fromEntries(form.recommendations.map(r => [r.id, r.description]));
 
   const initChecked = () => {
-    const checked: Record<string, boolean> = {}
+    const checked: Record<string, boolean> = {};
     for (const item of result.requirements) {
-      checked[`req-${item.id}`] =
-        item.improved !== (originalReqs[item.id] ?? '')
+      checked[`req-${item.id}`] = item.improved !== (originalReqs[item.id] ?? '');
     }
     for (const item of result.gaps) {
-      checked[`gap-${item.id}`] =
-        item.improved !== (originalGaps[item.id] ?? '')
+      checked[`gap-${item.id}`] = item.improved !== (originalGaps[item.id] ?? '');
     }
     for (const item of result.recommendations) {
-      checked[`rec-${item.id}`] =
-        item.improved !== (originalRecs[item.id] ?? '')
+      checked[`rec-${item.id}`] = item.improved !== (originalRecs[item.id] ?? '');
     }
-    return checked
-  }
+    return checked;
+  };
 
   // Item checkboxes
-  const [checked, setChecked] = useState<Record<string, boolean>>(initChecked)
+  const [checked, setChecked] = useState<Record<string, boolean>>(initChecked);
   // Per-flag checkboxes: all unchecked by default (opt-in)
-  const [flagChecked, setFlagChecked] = useState<Record<string, boolean>>({})
+  const [flagChecked, setFlagChecked] = useState<Record<string, boolean>>({});
   // Missing coverage: all checked by default
-  const [coverageChecked, setCoverageChecked] = useState<
-    Record<number, boolean>
-  >(() => Object.fromEntries(result.missingCoverage.map((_, i) => [i, true])))
+  const [coverageChecked, setCoverageChecked] = useState<Record<number, boolean>>(() =>
+    Object.fromEntries(result.missingCoverage.map((_, i) => [i, true]))
+  );
 
-  const modalRef = useRef<HTMLDivElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Auto-focus and Escape + focus trap
   useEffect(() => {
@@ -73,82 +54,68 @@ const EnhanceModal = ({
         modalRef.current?.querySelectorAll<HTMLElement>(
           'button:not([disabled]), input[type="checkbox"]:not([disabled])'
         ) ?? []
-      )
-    focusable()[0]?.focus()
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const hasAnyActionable =
     result.requirements.some(
       i => i.improved !== (originalReqs[i.id] ?? '') || i.flags.length > 0
     ) ||
-    result.gaps.some(
-      i => i.improved !== (originalGaps[i.id] ?? '') || i.flags.length > 0
-    ) ||
+    result.gaps.some(i => i.improved !== (originalGaps[i.id] ?? '') || i.flags.length > 0) ||
     result.recommendations.some(
       i => i.improved !== (originalRecs[i.id] ?? '') || i.flags.length > 0
     ) ||
-    result.missingCoverage.length > 0
+    result.missingCoverage.length > 0;
 
-  const toggle = (key: string) =>
-    setChecked(prev => ({ ...prev, [key]: !prev[key] }))
+  const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const toggleFlag = (key: string) =>
-    setFlagChecked(prev => ({ ...prev, [key]: !prev[key] }))
+  const toggleFlag = (key: string) => setFlagChecked(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const toggleCoverage = (i: number) =>
-    setCoverageChecked(prev => ({ ...prev, [i]: !prev[i] }))
+  const toggleCoverage = (i: number) => setCoverageChecked(prev => ({ ...prev, [i]: !prev[i] }));
 
-  const totalImprovements = Object.values(checked).filter(Boolean).length
-  const totalNewGaps = Object.values(coverageChecked).filter(Boolean).length
+  const totalImprovements = Object.values(checked).filter(Boolean).length;
+  const totalNewGaps = Object.values(coverageChecked).filter(Boolean).length;
 
   const applyLabel = () => {
-    const parts: string[] = []
+    const parts: string[] = [];
     if (totalImprovements > 0)
-      parts.push(
-        `${totalImprovements} improvement${totalImprovements !== 1 ? 's' : ''}`
-      )
-    if (totalNewGaps > 0)
-      parts.push(`${totalNewGaps} gap${totalNewGaps !== 1 ? 's' : ''}`)
-    return parts.length > 0 ? `Apply ${parts.join(' + ')}` : 'Nothing selected'
-  }
+      parts.push(`${totalImprovements} improvement${totalImprovements !== 1 ? 's' : ''}`);
+    if (totalNewGaps > 0) parts.push(`${totalNewGaps} gap${totalNewGaps !== 1 ? 's' : ''}`);
+    return parts.length > 0 ? `Apply ${parts.join(' + ')}` : 'Nothing selected';
+  };
 
-  const buildDescription = (
-    item: EnhancementItem,
-    itemKey: string,
-    base: string
-  ) => {
-    const selectedFlags = item.flags.filter(
-      (_, i) => flagChecked[flagKey(itemKey, i)]
-    )
-    if (selectedFlags.length === 0) return base
-    return `${base} [TODO: ${selectedFlags.join('; ')}]`
-  }
+  const buildDescription = (item: EnhancementItem, itemKey: string, base: string) => {
+    const selectedFlags = item.flags.filter((_, i) => flagChecked[flagKey(itemKey, i)]);
+    if (selectedFlags.length === 0) return base;
+    return `${base} [TODO: ${selectedFlags.join('; ')}]`;
+  };
 
   const handleApply = () => {
     const accepted: AcceptedChanges = {
@@ -156,51 +123,39 @@ const EnhanceModal = ({
       gaps: {},
       recommendations: {},
       newGaps: [],
-    }
+    };
 
     for (const item of result.requirements) {
-      const key = `req-${item.id}`
+      const key = `req-${item.id}`;
       if (checked[key]) {
-        accepted.requirements[item.id] = buildDescription(
-          item,
-          key,
-          item.improved
-        )
+        accepted.requirements[item.id] = buildDescription(item, key, item.improved);
       }
     }
     for (const item of result.gaps) {
-      const key = `gap-${item.id}`
+      const key = `gap-${item.id}`;
       if (checked[key]) {
-        accepted.gaps[item.id] = buildDescription(item, key, item.improved)
+        accepted.gaps[item.id] = buildDescription(item, key, item.improved);
       }
     }
     for (const item of result.recommendations) {
-      const key = `rec-${item.id}`
+      const key = `rec-${item.id}`;
       if (checked[key]) {
-        accepted.recommendations[item.id] = buildDescription(
-          item,
-          key,
-          item.improved
-        )
+        accepted.recommendations[item.id] = buildDescription(item, key, item.improved);
       }
     }
 
-    accepted.newGaps = result.missingCoverage.filter(
-      (_, i) => coverageChecked[i]
-    )
+    accepted.newGaps = result.missingCoverage.filter((_, i) => coverageChecked[i]);
 
-    onApply(accepted)
-  }
+    onApply(accepted);
+  };
 
   const renderItem = (item: EnhancementItem, key: string, original: string) => {
-    const hasTextChange = item.improved !== original
-    const isActionable = hasTextChange || item.flags.length > 0
-    const isChecked = checked[key] ?? false
+    const hasTextChange = item.improved !== original;
+    const isActionable = hasTextChange || item.flags.length > 0;
+    const isChecked = checked[key] ?? false;
     return (
       <div key={key} className={`py-3 ${!isActionable ? 'opacity-40' : ''}`}>
-        <label
-          className={`flex gap-3 ${isActionable ? 'cursor-pointer' : 'cursor-default'}`}
-        >
+        <label className={`flex gap-3 ${isActionable ? 'cursor-pointer' : 'cursor-default'}`}>
           <input
             type="checkbox"
             checked={isChecked}
@@ -211,17 +166,15 @@ const EnhanceModal = ({
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-800">{item.improved}</p>
             {hasTextChange && (
-              <p className="text-xs text-gray-400 mt-0.5 truncate">
-                was: &ldquo;{original}&rdquo;
-              </p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">was: &ldquo;{original}&rdquo;</p>
             )}
           </div>
         </label>
         {item.flags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2 ml-6">
             {item.flags.map((flag, i) => {
-              const fk = flagKey(key, i)
-              const isFlag = flagChecked[fk] ?? false
+              const fk = flagKey(key, i);
+              const isFlag = flagChecked[fk] ?? false;
               return (
                 <button
                   key={i}
@@ -240,13 +193,13 @@ const EnhanceModal = ({
                 >
                   ⚑ {flag}
                 </button>
-              )
+              );
             })}
           </div>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -259,10 +212,7 @@ const EnhanceModal = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2
-            id="enhance-modal-title"
-            className="text-base font-semibold text-gray-900"
-          >
+          <h2 id="enhance-modal-title" className="text-base font-semibold text-gray-900">
             AI Review Enhancement
           </h2>
           <button
@@ -288,15 +238,8 @@ const EnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {result.requirements.map(item => (
-                  <div
-                    key={`req-${item.id}`}
-                    className={subtaskIds.has(item.id) ? 'ml-6' : ''}
-                  >
-                    {renderItem(
-                      item,
-                      `req-${item.id}`,
-                      originalReqs[item.id] ?? ''
-                    )}
+                  <div key={`req-${item.id}`} className={subtaskIds.has(item.id) ? 'ml-6' : ''}>
+                    {renderItem(item, `req-${item.id}`, originalReqs[item.id] ?? '')}
                   </div>
                 ))}
               </div>
@@ -310,11 +253,7 @@ const EnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {result.gaps.map(item =>
-                  renderItem(
-                    item,
-                    `gap-${item.id}`,
-                    originalGaps[item.id] ?? ''
-                  )
+                  renderItem(item, `gap-${item.id}`, originalGaps[item.id] ?? '')
                 )}
               </div>
             </section>
@@ -327,11 +266,7 @@ const EnhanceModal = ({
               </h3>
               <div className="divide-y divide-gray-100">
                 {result.recommendations.map(item =>
-                  renderItem(
-                    item,
-                    `rec-${item.id}`,
-                    originalRecs[item.id] ?? ''
-                  )
+                  renderItem(item, `rec-${item.id}`, originalRecs[item.id] ?? '')
                 )}
               </div>
             </section>
@@ -347,10 +282,7 @@ const EnhanceModal = ({
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg divide-y divide-amber-100">
                 {result.missingCoverage.map((note, i) => (
-                  <label
-                    key={i}
-                    className="flex gap-3 px-4 py-3 cursor-pointer"
-                  >
+                  <label key={i} className="flex gap-3 px-4 py-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={coverageChecked[i] ?? true}
@@ -383,7 +315,7 @@ const EnhanceModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default EnhanceModal
+export default EnhanceModal;

@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { v4 as uuidv4 } from 'uuid'
-import { useReviewStore } from '../stores/reviewStore'
-import StatusDropdown from '../components/StatusDropdown'
-import SectionRow from '../components/SectionRow'
-import ExportBar from '../components/ExportBar'
-import EnhanceModal from '../components/EnhanceModal'
-import PasteAIResponseModal from '../components/PasteAIResponseModal'
-import ImportFromPRDModal from '../components/ImportFromPRDModal'
-import {
-  enhanceReview,
-  buildFullPrompt,
-  parseResponse,
-} from '../utils/enhanceWithAI'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
+import { useReviewStore } from '../stores/reviewStore';
+import StatusDropdown from '../components/StatusDropdown';
+import SectionRow from '../components/SectionRow';
+import ExportBar from '../components/ExportBar';
+import EnhanceModal from '../components/EnhanceModal';
+import PasteAIResponseModal from '../components/PasteAIResponseModal';
+import ImportFromPRDModal from '../components/ImportFromPRDModal';
+import { enhanceReview, buildFullPrompt, parseResponse } from '../utils/enhanceWithAI';
 import type {
   CodeReviewForm,
   RequirementItem,
@@ -26,7 +22,7 @@ import type {
   EnhancementResult,
   AcceptedChanges,
   SavedDocument,
-} from '../types'
+} from '../types';
 
 const emptyForm = (): CodeReviewForm => ({
   title: '',
@@ -38,81 +34,78 @@ const emptyForm = (): CodeReviewForm => ({
   gaps: [],
   recommendations: [],
   outOfScope: [],
-})
+});
 
 const CodeReview = () => {
-  const { id } = useParams<{ id: string }>()
-  const isNew = id === 'new'
-  const navigate = useNavigate()
-  const { saveDocument, updateDocument } = useReviewStore()
+  const { id } = useParams<{ id: string }>();
+  const isNew = id === 'new';
+  const navigate = useNavigate();
+  const { saveDocument, updateDocument } = useReviewStore();
 
-  const [form, setForm] = useState<CodeReviewForm>(emptyForm())
-  const [docId, setDocId] = useState<string>('')
-  const [createdAt, setCreatedAt] = useState<string>('')
-  const [isDirty, setIsDirty] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [showImportFromPRD, setShowImportFromPRD] = useState(false)
-  const [isEnhancing, setIsEnhancing] = useState(false)
-  const [enhanceResult, setEnhanceResult] = useState<EnhancementResult | null>(
-    null
-  )
-  const [enhanceError, setEnhanceError] = useState<string | null>(null)
-  const [showPasteModal, setShowPasteModal] = useState(false)
-  const [promptCopied, setPromptCopied] = useState(false)
+  const [form, setForm] = useState<CodeReviewForm>(emptyForm());
+  const [docId, setDocId] = useState<string>('');
+  const [createdAt, setCreatedAt] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [showImportFromPRD, setShowImportFromPRD] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceResult, setEnhanceResult] = useState<EnhancementResult | null>(null);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
 
-  const hasInitializedRef = useRef(false)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const requirementsSectionRef = useRef<HTMLDivElement>(null)
-  const gapsSectionRef = useRef<HTMLDivElement>(null)
-  const recommendationsSectionRef = useRef<HTMLDivElement>(null)
+  const hasInitializedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requirementsSectionRef = useRef<HTMLDivElement>(null);
+  const gapsSectionRef = useRef<HTMLDivElement>(null);
+  const recommendationsSectionRef = useRef<HTMLDivElement>(null);
 
   const focusLastInput = (ref: React.RefObject<HTMLDivElement | null>) => {
     setTimeout(() => {
-      const inputs =
-        ref.current?.querySelectorAll<HTMLTextAreaElement>('textarea')
-      inputs?.[inputs.length - 1]?.focus()
-    }, 0)
-  }
+      const inputs = ref.current?.querySelectorAll<HTMLTextAreaElement>('textarea');
+      inputs?.[inputs.length - 1]?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     if (isNew) {
-      setDocId(uuidv4())
-      setCreatedAt(new Date().toISOString())
-      hasInitializedRef.current = true
-      return
+      setDocId(uuidv4());
+      setCreatedAt(new Date().toISOString());
+      hasInitializedRef.current = true;
+      return;
     }
-    if (!id) return
+    if (!id) return;
     fetch(`/api/reviews/${id}`)
       .then(res => {
-        if (!res.ok) throw new Error('Not found')
-        return res.json()
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
       })
       .then((doc: SavedDocument) => {
         if (doc.deletedAt) {
-          navigate('/', { replace: true })
-          return
+          navigate('/', { replace: true });
+          return;
         }
-        setForm({ ...emptyForm(), ...(doc.data as CodeReviewForm) })
-        setDocId(doc.id)
-        setCreatedAt(doc.createdAt)
-        setIsDirty(false)
-        hasInitializedRef.current = true
+        setForm({ ...emptyForm(), ...(doc.data as CodeReviewForm) });
+        setDocId(doc.id);
+        setCreatedAt(doc.createdAt);
+        setIsDirty(false);
+        hasInitializedRef.current = true;
       })
-      .catch(() => setLoadError('Could not load review.'))
-  }, [id, isNew, navigate])
+      .catch(() => setLoadError('Could not load review.'));
+  }, [id, isNew, navigate]);
 
   const update = useCallback((patch: Partial<CodeReviewForm>) => {
-    setForm(prev => ({ ...prev, ...patch }))
-    setIsDirty(true)
-  }, [])
+    setForm(prev => ({ ...prev, ...patch }));
+    setIsDirty(true);
+  }, []);
 
   const handleSave = useCallback(async () => {
-    setIsSaving(true)
-    setSaveError(null)
+    setIsSaving(true);
+    setSaveError(null);
     try {
-      const now = new Date().toISOString()
+      const now = new Date().toISOString();
       const doc: SavedDocument = {
         id: docId,
         type: 'code-review',
@@ -120,143 +113,133 @@ const CodeReview = () => {
         createdAt: createdAt || now,
         modifiedAt: now,
         data: form,
-      }
+      };
       if (isNew) {
-        await saveDocument(doc)
-        setIsDirty(false)
-        navigate(`/code-review/${docId}`, { replace: true })
+        await saveDocument(doc);
+        setIsDirty(false);
+        navigate(`/code-review/${docId}`, { replace: true });
       } else {
-        await updateDocument(doc)
-        setIsDirty(false)
+        await updateDocument(doc);
+        setIsDirty(false);
       }
     } catch {
-      setSaveError('Save failed')
+      setSaveError('Save failed');
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }, [isNew, docId, form, createdAt, saveDocument, updateDocument, navigate])
+  }, [isNew, docId, form, createdAt, saveDocument, updateDocument, navigate]);
 
   // Debounced auto-save: fires 1.5s after any form change
   useEffect(() => {
-    if (!hasInitializedRef.current || !isDirty) return
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(handleSave, 1500)
+    if (!hasInitializedRef.current || !isDirty) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(handleSave, 1500);
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
-  }, [handleSave, isDirty])
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [handleSave, isDirty]);
 
   const handleCopyPrompt = async () => {
-    await navigator.clipboard.writeText(buildFullPrompt(form))
-    setPromptCopied(true)
-    setTimeout(() => setPromptCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(buildFullPrompt(form));
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2000);
+  };
 
   const handlePasteResponse = (text: string) => {
     try {
-      const raw = parseResponse(text)
-      const stripFlag = (f: string) => f.replace(/^⚑\s*/, '').trim()
+      const raw = parseResponse(text);
+      const stripFlag = (f: string) => f.replace(/^⚑\s*/, '').trim();
       const stripFlags = (items: typeof raw.requirements) =>
-        items.map(item => ({ ...item, flags: item.flags.map(stripFlag) }))
+        items.map(item => ({ ...item, flags: item.flags.map(stripFlag) }));
       const result = {
         ...raw,
         requirements: stripFlags(raw.requirements),
         gaps: stripFlags(raw.gaps),
         recommendations: stripFlags(raw.recommendations),
-      }
-      setEnhanceResult(result)
-      setShowPasteModal(false)
-      setEnhanceError(null)
+      };
+      setEnhanceResult(result);
+      setShowPasteModal(false);
+      setEnhanceError(null);
     } catch {
-      setEnhanceError(
-        'Could not parse AI response. Make sure you pasted the full JSON output.'
-      )
-      setShowPasteModal(false)
+      setEnhanceError('Could not parse AI response. Make sure you pasted the full JSON output.');
+      setShowPasteModal(false);
     }
-  }
+  };
 
   const handleEnhance = async () => {
-    setIsEnhancing(true)
-    setEnhanceError(null)
+    setIsEnhancing(true);
+    setEnhanceError(null);
     try {
-      await handleSave()
-      const result = await enhanceReview(form)
-      setEnhanceResult(result)
+      await handleSave();
+      const result = await enhanceReview(form);
+      setEnhanceResult(result);
     } catch (err) {
-      setEnhanceError(err instanceof Error ? err.message : 'Enhancement failed')
+      setEnhanceError(err instanceof Error ? err.message : 'Enhancement failed');
     } finally {
-      setIsEnhancing(false)
+      setIsEnhancing(false);
     }
-  }
+  };
 
   const applyEnhancements = (accepted: AcceptedChanges) => {
     const appendedGaps = accepted.newGaps.map(note => {
-      const trimmed = note.trim()
+      const trimmed = note.trim();
       const description =
         trimmed.endsWith('.') || trimmed.endsWith('?')
           ? trimmed
-          : `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)} not covered.`
-      return { id: uuidv4(), description, status: 'OPEN' as const }
-    })
+          : `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)} not covered.`;
+      return { id: uuidv4(), description, status: 'OPEN' as const };
+    });
     update({
       requirements: form.requirements.map(r => {
-        const d = accepted.requirements[r.id]
-        const updated = d !== undefined ? { ...r, description: d } : r
+        const d = accepted.requirements[r.id];
+        const updated = d !== undefined ? { ...r, description: d } : r;
         if (updated.subtasks?.length) {
           return {
             ...updated,
             subtasks: updated.subtasks.map(s => {
-              const sd = accepted.requirements[s.id]
-              return sd !== undefined ? { ...s, description: sd } : s
+              const sd = accepted.requirements[s.id];
+              return sd !== undefined ? { ...s, description: sd } : s;
             }),
-          }
+          };
         }
-        return updated
+        return updated;
       }),
       gaps: [
         ...form.gaps.map(g => {
-          const d = accepted.gaps[g.id]
-          return d !== undefined ? { ...g, description: d } : g
+          const d = accepted.gaps[g.id];
+          return d !== undefined ? { ...g, description: d } : g;
         }),
         ...appendedGaps,
       ],
       recommendations: form.recommendations.map(r => {
-        const d = accepted.recommendations[r.id]
-        return d !== undefined ? { ...r, description: d } : r
+        const d = accepted.recommendations[r.id];
+        return d !== undefined ? { ...r, description: d } : r;
       }),
-    })
-    setEnhanceResult(null)
-  }
+    });
+    setEnhanceResult(null);
+  };
 
   // Requirements
   const addRequirement = (focusNew = false) => {
     update({
-      requirements: [
-        ...form.requirements,
-        { id: uuidv4(), status: 'INCOMPLETE', description: '' },
-      ],
-    })
-    if (focusNew) focusLastInput(requirementsSectionRef)
-  }
+      requirements: [...form.requirements, { id: uuidv4(), status: 'INCOMPLETE', description: '' }],
+    });
+    if (focusNew) focusLastInput(requirementsSectionRef);
+  };
   const updateRequirement = (id: string, patch: Partial<RequirementItem>) =>
     update({
-      requirements: form.requirements.map(r =>
-        r.id === id ? { ...r, ...patch } : r
-      ),
-    })
+      requirements: form.requirements.map(r => (r.id === id ? { ...r, ...patch } : r)),
+    });
   const removeRequirement = (id: string) =>
-    update({ requirements: form.requirements.filter(r => r.id !== id) })
+    update({ requirements: form.requirements.filter(r => r.id !== id) });
 
   const focusLastSubtask = (reqId: string) => {
     setTimeout(() => {
-      const container = requirementsSectionRef.current?.querySelector(
-        `[data-req-id="${reqId}"]`
-      )
-      const textareas =
-        container?.querySelectorAll<HTMLTextAreaElement>('textarea')
-      textareas?.[textareas.length - 1]?.focus()
-    }, 0)
-  }
+      const container = requirementsSectionRef.current?.querySelector(`[data-req-id="${reqId}"]`);
+      const textareas = container?.querySelectorAll<HTMLTextAreaElement>('textarea');
+      textareas?.[textareas.length - 1]?.focus();
+    }, 0);
+  };
 
   const addSubtask = (reqId: string, focusNew = false) => {
     update({
@@ -275,61 +258,50 @@ const CodeReview = () => {
             }
           : r
       ),
-    })
-    if (focusNew) focusLastSubtask(reqId)
-  }
-  const updateSubtask = (
-    reqId: string,
-    subId: string,
-    patch: Partial<SubtaskItem>
-  ) =>
+    });
+    if (focusNew) focusLastSubtask(reqId);
+  };
+  const updateSubtask = (reqId: string, subId: string, patch: Partial<SubtaskItem>) =>
     update({
       requirements: form.requirements.map(r =>
         r.id === reqId
           ? {
               ...r,
-              subtasks: (r.subtasks ?? []).map(s =>
-                s.id === subId ? { ...s, ...patch } : s
-              ),
+              subtasks: (r.subtasks ?? []).map(s => (s.id === subId ? { ...s, ...patch } : s)),
             }
           : r
       ),
-    })
+    });
   const removeSubtask = (reqId: string, subId: string) =>
     update({
       requirements: form.requirements.map(r =>
-        r.id === reqId
-          ? { ...r, subtasks: (r.subtasks ?? []).filter(s => s.id !== subId) }
-          : r
+        r.id === reqId ? { ...r, subtasks: (r.subtasks ?? []).filter(s => s.id !== subId) } : r
       ),
-    })
+    });
 
-  const cycleRecStatus = (
-    current: RecommendationStatus | undefined
-  ): RecommendationStatus => {
-    if (!current || current === 'OPEN') return 'DONE'
-    if (current === 'DONE') return 'WONT_FIX'
-    return 'OPEN'
-  }
+  const cycleRecStatus = (current: RecommendationStatus | undefined): RecommendationStatus => {
+    if (!current || current === 'OPEN') return 'DONE';
+    if (current === 'DONE') return 'WONT_FIX';
+    return 'OPEN';
+  };
 
   const cycleGapStatus = (gap: GapItem): GapStatus => {
-    const effective = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
-    if (effective === 'OPEN') return 'RESOLVED'
-    if (effective === 'RESOLVED') return 'WONT_DO'
-    return 'OPEN'
-  }
+    const effective = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN');
+    if (effective === 'OPEN') return 'RESOLVED';
+    if (effective === 'RESOLVED') return 'WONT_DO';
+    return 'OPEN';
+  };
 
   // Gaps
   const addGap = (focusNew = false) => {
     update({
       gaps: [...form.gaps, { id: uuidv4(), description: '', status: 'OPEN' }],
-    })
-    if (focusNew) focusLastInput(gapsSectionRef)
-  }
+    });
+    if (focusNew) focusLastInput(gapsSectionRef);
+  };
   const updateGap = (id: string, patch: Partial<GapItem>) =>
-    update({ gaps: form.gaps.map(g => (g.id === id ? { ...g, ...patch } : g)) })
-  const removeGap = (id: string) =>
-    update({ gaps: form.gaps.filter(g => g.id !== id) })
+    update({ gaps: form.gaps.map(g => (g.id === id ? { ...g, ...patch } : g)) });
+  const removeGap = (id: string) => update({ gaps: form.gaps.filter(g => g.id !== id) });
 
   // Recommendations
   const addRecommendation = (focusNew = false) => {
@@ -338,54 +310,41 @@ const CodeReview = () => {
         ...form.recommendations,
         { id: uuidv4(), status: 'OPEN' as const, description: '' },
       ],
-    })
-    if (focusNew) focusLastInput(recommendationsSectionRef)
-  }
-  const updateRecommendation = (
-    id: string,
-    patch: Partial<RecommendationItem>
-  ) =>
+    });
+    if (focusNew) focusLastInput(recommendationsSectionRef);
+  };
+  const updateRecommendation = (id: string, patch: Partial<RecommendationItem>) =>
     update({
-      recommendations: form.recommendations.map(r =>
-        r.id === id ? { ...r, ...patch } : r
-      ),
-    })
+      recommendations: form.recommendations.map(r => (r.id === id ? { ...r, ...patch } : r)),
+    });
   const removeRecommendation = (id: string) =>
     update({
       recommendations: form.recommendations.filter(r => r.id !== id),
-    })
+    });
 
   // Out of scope
   const addOutOfScope = () =>
     update({
-      outOfScope: [
-        ...form.outOfScope,
-        { id: uuidv4(), title: '', acceptanceCriteria: '' },
-      ],
-    })
+      outOfScope: [...form.outOfScope, { id: uuidv4(), title: '', acceptanceCriteria: '' }],
+    });
   const updateOutOfScope = (id: string, patch: Partial<OutOfScopeItem>) =>
     update({
-      outOfScope: form.outOfScope.map(o =>
-        o.id === id ? { ...o, ...patch } : o
-      ),
-    })
+      outOfScope: form.outOfScope.map(o => (o.id === id ? { ...o, ...patch } : o)),
+    });
   const removeOutOfScope = (id: string) =>
-    update({ outOfScope: form.outOfScope.filter(o => o.id !== id) })
+    update({ outOfScope: form.outOfScope.filter(o => o.id !== id) });
 
   if (loadError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{loadError}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="text-blue-600 hover:underline text-sm"
-          >
+          <button onClick={() => navigate('/')} className="text-blue-600 hover:underline text-sm">
             ← Back to home
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -460,8 +419,8 @@ const CodeReview = () => {
                   : '',
               ],
             ] as [string, string | undefined][]
-          ).filter(([, v]) => v)
-          if (rows.length === 0) return null
+          ).filter(([, v]) => v);
+          if (rows.length === 0) return null;
           return (
             <table className="hidden print:table w-full text-sm border-collapse mb-2">
               <tbody>
@@ -470,14 +429,12 @@ const CodeReview = () => {
                     <td className="border border-gray-300 px-3 py-1 font-semibold text-gray-600 whitespace-nowrap w-32">
                       {label}
                     </td>
-                    <td className="border border-gray-300 px-3 py-1 text-gray-800">
-                      {value}
-                    </td>
+                    <td className="border border-gray-300 px-3 py-1 text-gray-800">{value}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )
+          );
         })()}
 
         {/* Export bar */}
@@ -495,13 +452,11 @@ const CodeReview = () => {
         />
         {promptCopied && (
           <p className="text-sm text-green-600 -mt-4">
-            ✓ Prompt copied — paste into your AI tool, then use "Paste AI
-            response" to import the result.
+            ✓ Prompt copied — paste into your AI tool, then use "Paste AI response" to import the
+            result.
           </p>
         )}
-        {enhanceError && (
-          <p className="text-sm text-red-500 -mt-4">{enhanceError}</p>
-        )}
+        {enhanceError && <p className="text-sm text-red-500 -mt-4">{enhanceError}</p>}
 
         {/* Requirements Coverage */}
         <section>
@@ -568,20 +523,16 @@ const CodeReview = () => {
                 <SectionRow onRemove={() => removeRequirement(req.id)}>
                   <StatusDropdown
                     value={req.status}
-                    onChange={(val: StatusOption) =>
-                      updateRequirement(req.id, { status: val })
-                    }
+                    onChange={(val: StatusOption) => updateRequirement(req.id, { status: val })}
                   />
                   <textarea
                     rows={1}
                     value={req.description}
-                    onChange={e =>
-                      updateRequirement(req.id, { description: e.target.value })
-                    }
+                    onChange={e => updateRequirement(req.id, { description: e.target.value })}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        addRequirement(true)
+                        e.preventDefault();
+                        addRequirement(true);
                       }
                     }}
                     placeholder="Describe the requirement…"
@@ -591,9 +542,7 @@ const CodeReview = () => {
                 {(req.subtasks ?? []).map(sub => (
                   <div key={sub.id} className="ml-8 mt-1">
                     <SectionRow onRemove={() => removeSubtask(req.id, sub.id)}>
-                      <span className="text-gray-300 text-xs mr-1 shrink-0">
-                        └
-                      </span>
+                      <span className="text-gray-300 text-xs mr-1 shrink-0">└</span>
                       <StatusDropdown
                         value={sub.status}
                         onChange={(val: StatusOption) =>
@@ -610,8 +559,8 @@ const CodeReview = () => {
                         }
                         onKeyDown={e => {
                           if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            addSubtask(req.id, true)
+                            e.preventDefault();
+                            addSubtask(req.id, true);
                           }
                         }}
                         placeholder="Describe the subtask…"
@@ -644,37 +593,27 @@ const CodeReview = () => {
           </h2>
           <div className="space-y-2" ref={gapsSectionRef}>
             {form.gaps.map(gap => {
-              const gapStatus: GapStatus =
-                gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
-              const gapIcon =
-                gapStatus === 'RESOLVED'
-                  ? '✓'
-                  : gapStatus === 'WONT_DO'
-                    ? '✕'
-                    : '○'
+              const gapStatus: GapStatus = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN');
+              const gapIcon = gapStatus === 'RESOLVED' ? '✓' : gapStatus === 'WONT_DO' ? '✕' : '○';
               const gapIconColor =
                 gapStatus === 'RESOLVED'
                   ? 'text-green-500 hover:opacity-70'
                   : gapStatus === 'WONT_DO'
                     ? 'text-orange-400 hover:opacity-70'
-                    : 'text-gray-300 hover:text-gray-500'
+                    : 'text-gray-300 hover:text-gray-500';
               const gapTextClass =
-                gapStatus === 'OPEN'
-                  ? 'text-gray-800'
-                  : 'line-through text-gray-400'
+                gapStatus === 'OPEN' ? 'text-gray-800' : 'line-through text-gray-400';
               const gapTitle =
                 gapStatus === 'OPEN'
                   ? 'Mark as resolved'
                   : gapStatus === 'RESOLVED'
                     ? "Mark as won't do"
-                    : 'Mark as open'
+                    : 'Mark as open';
               return (
                 <div key={gap.id}>
                   <SectionRow onRemove={() => removeGap(gap.id)}>
                     <button
-                      onClick={() =>
-                        updateGap(gap.id, { status: cycleGapStatus(gap) })
-                      }
+                      onClick={() => updateGap(gap.id, { status: cycleGapStatus(gap) })}
                       className={`shrink-0 text-sm mt-1 transition-colors ${gapIconColor}`}
                       title={gapTitle}
                     >
@@ -683,13 +622,11 @@ const CodeReview = () => {
                     <textarea
                       rows={1}
                       value={gap.description}
-                      onChange={e =>
-                        updateGap(gap.id, { description: e.target.value })
-                      }
+                      onChange={e => updateGap(gap.id, { description: e.target.value })}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          addGap(true)
+                          e.preventDefault();
+                          addGap(true);
                         }
                       }}
                       placeholder="Describe the gap…"
@@ -700,9 +637,7 @@ const CodeReview = () => {
                     <textarea
                       rows={1}
                       value={gap.note ?? ''}
-                      onChange={e =>
-                        updateGap(gap.id, { note: e.target.value })
-                      }
+                      onChange={e => updateGap(gap.id, { note: e.target.value })}
                       placeholder="What was done?"
                       className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
                     />
@@ -711,15 +646,13 @@ const CodeReview = () => {
                     <textarea
                       rows={1}
                       value={gap.reason ?? ''}
-                      onChange={e =>
-                        updateGap(gap.id, { reason: e.target.value })
-                      }
+                      onChange={e => updateGap(gap.id, { reason: e.target.value })}
                       placeholder="Why won't this be done?"
                       className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
                     />
                   )}
                 </div>
-              )
+              );
             })}
           </div>
           <button
@@ -737,21 +670,20 @@ const CodeReview = () => {
           </h2>
           <div className="space-y-2" ref={recommendationsSectionRef}>
             {form.recommendations.map(rec => {
-              const status = rec.status ?? 'OPEN'
-              const icon =
-                status === 'DONE' ? '✓' : status === 'WONT_FIX' ? '✕' : '☐'
+              const status = rec.status ?? 'OPEN';
+              const icon = status === 'DONE' ? '✓' : status === 'WONT_FIX' ? '✕' : '☐';
               const iconColor =
                 status === 'DONE'
                   ? 'text-green-500'
                   : status === 'WONT_FIX'
                     ? 'text-orange-400'
-                    : 'text-gray-400'
+                    : 'text-gray-400';
               const textClass =
                 status === 'OPEN'
                   ? 'text-gray-800'
                   : status === 'DONE'
                     ? 'line-through text-gray-400'
-                    : 'line-through text-gray-300'
+                    : 'line-through text-gray-300';
               return (
                 <div key={rec.id}>
                   <SectionRow onRemove={() => removeRecommendation(rec.id)}>
@@ -776,8 +708,8 @@ const CodeReview = () => {
                       }
                       onKeyDown={e => {
                         if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          addRecommendation(true)
+                          e.preventDefault();
+                          addRecommendation(true);
                         }
                       }}
                       placeholder="Describe the recommendation…"
@@ -788,15 +720,13 @@ const CodeReview = () => {
                     <textarea
                       rows={1}
                       value={rec.reason ?? ''}
-                      onChange={e =>
-                        updateRecommendation(rec.id, { reason: e.target.value })
-                      }
+                      onChange={e => updateRecommendation(rec.id, { reason: e.target.value })}
                       placeholder="Why won't this be acted on?"
                       className="ml-6 mt-0.5 w-[calc(100%-1.5rem)] text-xs text-gray-400 italic bg-transparent border-b border-gray-100 outline-none focus:border-blue-300 py-0.5 placeholder-gray-300 resize-none field-sizing-content"
                     />
                   )}
                 </div>
-              )
+              );
             })}
           </div>
           <button
@@ -822,9 +752,7 @@ const CodeReview = () => {
                   <input
                     type="text"
                     value={item.title}
-                    onChange={e =>
-                      updateOutOfScope(item.id, { title: e.target.value })
-                    }
+                    onChange={e => updateOutOfScope(item.id, { title: e.target.value })}
                     placeholder="Item title…"
                     className="flex-1 font-medium text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
                   />
@@ -883,14 +811,14 @@ const CodeReview = () => {
       {showImportFromPRD && (
         <ImportFromPRDModal
           onImport={items => {
-            update({ requirements: [...form.requirements, ...items] })
-            setShowImportFromPRD(false)
+            update({ requirements: [...form.requirements, ...items] });
+            setShowImportFromPRD(false);
           }}
           onClose={() => setShowImportFromPRD(false)}
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default CodeReview
+export default CodeReview;

@@ -1,3 +1,3 @@
-import type { Express } from 'express'
+import type { Express } from 'express';
 
-export declare function createApp(): Express
+export declare function createApp(): Express;

@@ -5,6 +5,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 ## Features
 
 ### PRD Creator
+
 - **Full structured form** — Overview, Problem Statement, Goals (objective + success metrics), How This Works (scenarios), Requirements (with nested subtasks), Out of Scope, Timeline, Open Questions, Notes
 - **Document metadata** — Author, Status (Draft / In Review / Approved), Version, Product Area, Dev Lead, Design Lead, PMM, Target Launch, Key Stakeholders, Doc Link; Created and Last Updated populated automatically
 - **Import requirements from Code Review** — pull requirements from any saved code review to seed a PRD
@@ -13,6 +14,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 - **Export options** — Copy Markdown (with metadata table + timeline table), Print to PDF (compact print-only metadata table), Download .docx
 
 ### Code Review
+
 - **Structured form** — Requirements Coverage (with nested subtasks), Gaps Identified, Recommendations, Out of Scope / Follow-up
 - **Requirement status** — VERIFIED / INCOMPLETE / MISSING dropdown per row
 - **Recommendation status** — click to cycle OPEN (☐) → DONE (✓) → WON'T FIX (✕)
@@ -23,6 +25,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 - **Export options** — Copy Markdown, Print to PDF, Download .docx
 
 ### Shared
+
 - **Auto-save** — debounced 1.5s auto-save after any input; immediate save before any export
 - **Keyboard friendly** — press Enter in any row to add the next item
 - **Home dashboard** — lists all PRDs and Code Reviews sorted by last modified; soft delete with 7-day retention before permanent deletion; collapsible "Recently Deleted" section with restore option
@@ -42,10 +45,10 @@ PM Tools is designed to be safe for use with internal work documents:
 
 The AI enhancement feature has two modes with different data handling profiles:
 
-| Mode | How it works | Data leaves your machine? |
-|---|---|---|
-| **Enhance with AI** (API key) | Sends document content to the Anthropic API | Yes — via your personal Anthropic API key |
-| **Copy prompt / Paste response** | You copy the prompt, run it in your own approved tool, paste the result back | No — the app makes no outbound calls |
+| Mode                             | How it works                                                                 | Data leaves your machine?                 |
+| -------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------- |
+| **Enhance with AI** (API key)    | Sends document content to the Anthropic API                                  | Yes — via your personal Anthropic API key |
+| **Copy prompt / Paste response** | You copy the prompt, run it in your own approved tool, paste the result back | No — the app makes no outbound calls      |
 
 For use in organisations with data privacy policies or AI usage governance requirements, the Copy prompt / Paste response workflow allows you to route AI requests through whatever tool your organisation has approved — keeping document content within your approved environment while still getting the same AI enhancement output.
 
@@ -61,10 +64,10 @@ For use in organisations with data privacy policies or AI usage governance requi
 
 Both PRDs and Code Reviews have an **AI Enhance** dropdown that groups three options:
 
-| Option | Description |
-|---|---|
-| **Enhance with AI** | Sends the document to Claude Haiku via your API key for a PM writing pass |
-| **Copy prompt** | Copies the full system + document prompt to clipboard to paste into any AI tool |
+| Option                | Description                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| **Enhance with AI**   | Sends the document to Claude Haiku via your API key for a PM writing pass                  |
+| **Copy prompt**       | Copies the full system + document prompt to clipboard to paste into any AI tool            |
 | **Paste AI response** | Opens a modal to paste the JSON output back in; same accept/reject UI as the internal flow |
 
 ### Using your own API key

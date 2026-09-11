@@ -1,13 +1,10 @@
-import type { CodeReviewForm } from '../types'
+import type { CodeReviewForm } from '../types';
 
-export function generateMarkdown(
-  form: CodeReviewForm,
-  createdAt?: string
-): string {
-  const lines: string[] = []
+export function generateMarkdown(form: CodeReviewForm, createdAt?: string): string {
+  const lines: string[] = [];
 
-  lines.push(`# PM Review [${form.title || 'Untitled'}]`)
-  lines.push('')
+  lines.push(`# PM Review [${form.title || 'Untitled'}]`);
+  lines.push('');
 
   const metaRows: [string, string][] = [
     ['Author', form.author ?? ''],
@@ -24,87 +21,87 @@ export function generateMarkdown(
           })
         : '',
     ],
-  ].filter(([, v]) => v) as [string, string][]
+  ].filter(([, v]) => v) as [string, string][];
 
   if (metaRows.length > 0) {
     for (const [label, value] of metaRows) {
-      lines.push(`**${label}:** ${value}  `)
+      lines.push(`**${label}:** ${value}  `);
     }
-    lines.push('')
+    lines.push('');
   }
 
-  lines.push('## Requirements Coverage')
+  lines.push('## Requirements Coverage');
   if (form.requirements.length === 0) {
-    lines.push('_No requirements added._')
+    lines.push('_No requirements added._');
   } else {
     for (const req of form.requirements) {
-      const desc = req.description.replace(/\n/g, ' ').trim()
-      if (!desc) continue
-      const check = req.status === 'VERIFIED' ? 'x' : ' '
-      lines.push(`- [${check}] ${req.status} — ${desc}`)
+      const desc = req.description.replace(/\n/g, ' ').trim();
+      if (!desc) continue;
+      const check = req.status === 'VERIFIED' ? 'x' : ' ';
+      lines.push(`- [${check}] ${req.status} — ${desc}`);
       for (const sub of req.subtasks ?? []) {
-        const subDesc = sub.description.replace(/\n/g, ' ').trim()
-        if (!subDesc) continue
-        const subCheck = sub.status === 'VERIFIED' ? 'x' : ' '
-        lines.push(`  - [${subCheck}] ${sub.status} — ${subDesc}`)
+        const subDesc = sub.description.replace(/\n/g, ' ').trim();
+        if (!subDesc) continue;
+        const subCheck = sub.status === 'VERIFIED' ? 'x' : ' ';
+        lines.push(`  - [${subCheck}] ${sub.status} — ${subDesc}`);
       }
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('## Gaps Identified')
+  lines.push('## Gaps Identified');
   if (form.gaps.length === 0) {
-    lines.push('_No gaps identified._')
+    lines.push('_No gaps identified._');
   } else {
     for (const gap of form.gaps) {
-      const gapStatus = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN')
+      const gapStatus = gap.status ?? (gap.resolved ? 'RESOLVED' : 'OPEN');
       if (gapStatus === 'RESOLVED') {
-        const suffix = gap.note ? ` *(${gap.note})*` : ''
-        lines.push(`- [x] ${gap.description}${suffix}`)
+        const suffix = gap.note ? ` *(${gap.note})*` : '';
+        lines.push(`- [x] ${gap.description}${suffix}`);
       } else if (gapStatus === 'WONT_DO') {
-        const suffix = gap.reason ? ` — ${gap.reason}` : ''
-        lines.push(`- ~~${gap.description}~~ *(Won't Do${suffix})*`)
+        const suffix = gap.reason ? ` — ${gap.reason}` : '';
+        lines.push(`- ~~${gap.description}~~ *(Won't Do${suffix})*`);
       } else {
-        lines.push(`- [ ] ${gap.description}`)
+        lines.push(`- [ ] ${gap.description}`);
       }
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('## Recommendations')
+  lines.push('## Recommendations');
   if (form.recommendations.length === 0) {
-    lines.push('_No recommendations._')
+    lines.push('_No recommendations._');
   } else {
     for (const rec of form.recommendations) {
-      const status = rec.status ?? 'OPEN'
-      if (status === 'DONE') lines.push(`- [x] ${rec.description}`)
+      const status = rec.status ?? 'OPEN';
+      if (status === 'DONE') lines.push(`- [x] ${rec.description}`);
       else if (status === 'WONT_FIX') {
-        const suffix = rec.reason ? ` — ${rec.reason}` : ''
-        lines.push(`- ~~${rec.description}~~ *(Won't Fix${suffix})*`)
-      } else lines.push(`- [ ] ${rec.description}`)
+        const suffix = rec.reason ? ` — ${rec.reason}` : '';
+        lines.push(`- ~~${rec.description}~~ *(Won't Fix${suffix})*`);
+      } else lines.push(`- [ ] ${rec.description}`);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('## Out of Scope / Follow-up')
+  lines.push('## Out of Scope / Follow-up');
   if (form.outOfScope.length === 0) {
-    lines.push('_No out of scope items._')
+    lines.push('_No out of scope items._');
   } else {
     for (const item of form.outOfScope) {
-      lines.push(`### ${item.title}`)
-      lines.push('**Acceptance Criteria:**')
-      lines.push(item.acceptanceCriteria)
-      lines.push('')
+      lines.push(`### ${item.title}`);
+      lines.push('**Acceptance Criteria:**');
+      lines.push(item.acceptanceCriteria);
+      lines.push('');
     }
   }
 
-  return lines.join('\n')
+  return lines.join('\n');
 }
 
 export async function copyMarkdownToClipboard(
   form: CodeReviewForm,
   createdAt?: string
 ): Promise<void> {
-  const md = generateMarkdown(form, createdAt)
-  await navigator.clipboard.writeText(md)
+  const md = generateMarkdown(form, createdAt);
+  await navigator.clipboard.writeText(md);
 }

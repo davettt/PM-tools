@@ -1,21 +1,21 @@
-import { useState } from 'react'
-import type { CodeReviewForm } from '../types'
-import { copyMarkdownToClipboard } from '../utils/exportMarkdown'
-import { downloadDocx } from '../utils/exportDocx'
-import { printDocument } from '../utils/exportPrint'
-import AIEnhanceDropdown from './AIEnhanceDropdown'
+import { useState } from 'react';
+import type { CodeReviewForm } from '../types';
+import { copyMarkdownToClipboard } from '../utils/exportMarkdown';
+import { downloadDocx } from '../utils/exportDocx';
+import { printDocument } from '../utils/exportPrint';
+import AIEnhanceDropdown from './AIEnhanceDropdown';
 
 interface ExportBarProps {
-  form: CodeReviewForm
-  createdAt?: string
-  saveNow: () => Promise<void>
-  isSaving: boolean
-  isDirty: boolean
-  saveError: string | null
-  onEnhanceClick: () => void
-  onCopyPrompt: () => void
-  onPasteResponse: () => void
-  isEnhancing: boolean
+  form: CodeReviewForm;
+  createdAt?: string;
+  saveNow: () => Promise<void>;
+  isSaving: boolean;
+  isDirty: boolean;
+  saveError: string | null;
+  onEnhanceClick: () => void;
+  onCopyPrompt: () => void;
+  onPasteResponse: () => void;
+  isEnhancing: boolean;
 }
 
 const ExportBar = ({
@@ -30,37 +30,37 @@ const ExportBar = ({
   onPasteResponse,
   isEnhancing,
 }: ExportBarProps) => {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopyMarkdown = async () => {
-    await saveNow()
-    await copyMarkdownToClipboard(form, createdAt)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await saveNow();
+    await copyMarkdownToClipboard(form, createdAt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handlePrint = async () => {
-    await saveNow()
-    printDocument()
-  }
+    await saveNow();
+    printDocument();
+  };
 
   const handleDocx = async () => {
-    await saveNow()
-    downloadDocx(form, createdAt)
-  }
+    await saveNow();
+    downloadDocx(form, createdAt);
+  };
 
   const statusText = () => {
-    if (saveError) return saveError
-    if (isSaving) return 'Saving…'
-    if (isDirty) return 'Unsaved changes'
-    return 'All changes saved'
-  }
+    if (saveError) return saveError;
+    if (isSaving) return 'Saving…';
+    if (isDirty) return 'Unsaved changes';
+    return 'All changes saved';
+  };
 
   const statusColor = saveError
     ? 'text-red-500'
     : isDirty || isSaving
       ? 'text-amber-500'
-      : 'text-gray-400'
+      : 'text-gray-400';
 
   return (
     <div className="space-y-2 print:hidden">
@@ -96,11 +96,10 @@ const ExportBar = ({
       </div>
 
       <p className="text-xs text-gray-400">
-        For a clean PDF, uncheck <strong>Headers and Footers</strong> in the
-        browser print dialog.
+        For a clean PDF, uncheck <strong>Headers and Footers</strong> in the browser print dialog.
       </p>
     </div>
-  )
-}
+  );
+};
 
-export default ExportBar
+export default ExportBar;

@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { createApp } from './server/router.js'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { createApp } from './server/router.js';
 
 export default defineConfig({
   plugins: [
@@ -10,11 +10,11 @@ export default defineConfig({
     {
       name: 'api-middleware',
       configureServer(server) {
-        server.middlewares.use(createApp())
+        server.middlewares.use(createApp());
       },
     },
   ],
   build: {
     outDir: 'dist',
   },
-})
+});

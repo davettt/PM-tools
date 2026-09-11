@@ -1,52 +1,47 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react';
 
 interface PasteAIResponseModalProps {
-  onSubmit: (text: string) => void
-  onClose: () => void
+  onSubmit: (text: string) => void;
+  onClose: () => void;
 }
 
-const PasteAIResponseModal = ({
-  onSubmit,
-  onClose,
-}: PasteAIResponseModalProps) => {
-  const [text, setText] = useState('')
-  const modalRef = useRef<HTMLDivElement>(null)
+const PasteAIResponseModal = ({ onSubmit, onClose }: PasteAIResponseModalProps) => {
+  const [text, setText] = useState('');
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const focusable = () =>
       Array.from(
-        modalRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), textarea'
-        ) ?? []
-      )
-    focusable()[0]?.focus()
+        modalRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), textarea') ?? []
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -59,15 +54,12 @@ const PasteAIResponseModal = ({
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h2
-              id="paste-modal-title"
-              className="text-base font-semibold text-gray-900"
-            >
+            <h2 id="paste-modal-title" className="text-base font-semibold text-gray-900">
               Paste AI Response
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Copy the prompt first, run it in your approved AI tool, then paste
-              the JSON response here.
+              Copy the prompt first, run it in your approved AI tool, then paste the JSON response
+              here.
             </p>
           </div>
           <button
@@ -106,7 +98,7 @@ const PasteAIResponseModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PasteAIResponseModal
+export default PasteAIResponseModal;

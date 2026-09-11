@@ -1,4 +1,4 @@
-import type { CodeReviewForm, EnhancementResult } from '../types'
+import type { CodeReviewForm, EnhancementResult } from '../types';
 
 const SYSTEM_PROMPT = `You are a PM peer reviewer. For each item in the review:
 1. Fix grammar, typos, and phrasing — expand shorthand into a complete sentence
@@ -47,89 +47,85 @@ Rules:
 - Include ALL items even if unchanged — use original text as "improved" value
 - "flags" is [] when nothing is missing from that item
 - "missingCoverage" is only for entire topic areas completely absent from the whole review — not mentioned in requirements, gaps, or recommendations, not even implicitly. Keep empty if the review looks reasonably covered. Do not restate anything already in gaps.
-- Never generate new items — only improve what already exists`
+- Never generate new items — only improve what already exists`;
 
 function buildPrompt(form: CodeReviewForm): string {
-  const lines: string[] = []
-  lines.push(`Review Title: ${form.title || 'Untitled'}`)
-  lines.push('')
+  const lines: string[] = [];
+  lines.push(`Review Title: ${form.title || 'Untitled'}`);
+  lines.push('');
 
-  lines.push('REQUIREMENTS COVERAGE:')
+  lines.push('REQUIREMENTS COVERAGE:');
   if (form.requirements.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const r of form.requirements) {
-      lines.push(`[${r.id}] ${r.status}: ${r.description}`)
+      lines.push(`[${r.id}] ${r.status}: ${r.description}`);
       for (const sub of r.subtasks ?? []) {
-        lines.push(`  [${sub.id}] ${sub.status}: ${sub.description}`)
+        lines.push(`  [${sub.id}] ${sub.status}: ${sub.description}`);
       }
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('GAPS IDENTIFIED:')
+  lines.push('GAPS IDENTIFIED:');
   if (form.gaps.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const g of form.gaps) {
-      lines.push(`[${g.id}] ${g.description}`)
+      lines.push(`[${g.id}] ${g.description}`);
     }
   }
-  lines.push('')
+  lines.push('');
 
-  lines.push('RECOMMENDATIONS:')
+  lines.push('RECOMMENDATIONS:');
   if (form.recommendations.length === 0) {
-    lines.push('(none)')
+    lines.push('(none)');
   } else {
     for (const r of form.recommendations) {
-      lines.push(`[${r.id}] ${r.description}`)
+      lines.push(`[${r.id}] ${r.description}`);
     }
   }
 
-  return lines.join('\n')
+  return lines.join('\n');
 }
 
 function parseResponse(text: string): EnhancementResult {
   // Attempt 1: direct parse
   try {
-    return JSON.parse(text) as EnhancementResult
+    return JSON.parse(text) as EnhancementResult;
   } catch {
     // continue
   }
 
   // Attempt 2: strip markdown code fences
-  const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '')
+  const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '');
   try {
-    return JSON.parse(stripped) as EnhancementResult
+    return JSON.parse(stripped) as EnhancementResult;
   } catch {
     // continue
   }
 
   // Attempt 3: extract first { to last }
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
   if (start !== -1 && end > start) {
     try {
-      return JSON.parse(text.slice(start, end + 1)) as EnhancementResult
+      return JSON.parse(text.slice(start, end + 1)) as EnhancementResult;
     } catch {
       // continue
     }
   }
 
-  throw new Error(
-    'AI returned an unexpected response format. Please try again.'
-  )
+  throw new Error('AI returned an unexpected response format. Please try again.');
 }
 
 export function buildFullPrompt(form: CodeReviewForm): string {
-  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`
+  return `INSTRUCTIONS:\n${SYSTEM_PROMPT}\n\n---\n\nDOCUMENT:\n${buildPrompt(form)}`;
 }
 
-export { parseResponse }
+export { parseResponse };
 
-export async function enhanceReview(
-  form: CodeReviewForm
-): Promise<EnhancementResult> {
+export async function enhanceReview(form: CodeReviewForm): Promise<EnhancementResult> {
   const response = await fetch('/api/ai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -137,20 +133,17 @@ export async function enhanceReview(
       systemPrompt: SYSTEM_PROMPT,
       prompt: buildPrompt(form),
     }),
-  })
+  });
 
-  const data = await response.json()
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      (data as { error?: string }).error ?? 'AI enhancement failed'
-    )
+    throw new Error((data as { error?: string }).error ?? 'AI enhancement failed');
   }
 
-  const text = (data as { content: { type: string; text: string }[] })
-    .content[0]?.text
+  const text = (data as { content: { type: string; text: string }[] }).content[0]?.text;
 
-  if (!text) throw new Error('Empty response from AI')
+  if (!text) throw new Error('Empty response from AI');
 
-  return parseResponse(text)
+  return parseResponse(text);
 }

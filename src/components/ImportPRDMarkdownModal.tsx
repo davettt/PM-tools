@@ -1,68 +1,63 @@
-import { useState, useEffect, useRef } from 'react'
-import { parsePRDMarkdown } from '../utils/importPRDMarkdown'
-import type { PRDForm } from '../types'
+import { useState, useEffect, useRef } from 'react';
+import { parsePRDMarkdown } from '../utils/importPRDMarkdown';
+import type { PRDForm } from '../types';
 
 interface ImportPRDMarkdownModalProps {
-  onImport: (parsed: Partial<PRDForm>) => void
-  onClose: () => void
+  onImport: (parsed: Partial<PRDForm>) => void;
+  onClose: () => void;
 }
 
-const ImportPRDMarkdownModal = ({
-  onImport,
-  onClose,
-}: ImportPRDMarkdownModalProps) => {
-  const [text, setText] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const modalRef = useRef<HTMLDivElement>(null)
+const ImportPRDMarkdownModal = ({ onImport, onClose }: ImportPRDMarkdownModalProps) => {
+  const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const focusable = () =>
       Array.from(
-        modalRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), textarea'
-        ) ?? []
-      )
-    focusable()[0]?.focus()
+        modalRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), textarea') ?? []
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleImport = () => {
-    setError(null)
-    const trimmed = text.trim()
+    setError(null);
+    const trimmed = text.trim();
     if (!trimmed.startsWith('# PRD [')) {
       setError(
         'This does not look like a pm-tools PRD export. Make sure you are pasting unmodified markdown copied from the "Copy Markdown" button.'
-      )
-      return
+      );
+      return;
     }
-    const parsed = parsePRDMarkdown(trimmed)
-    onImport(parsed)
-  }
+    const parsed = parsePRDMarkdown(trimmed);
+    onImport(parsed);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -75,17 +70,13 @@ const ImportPRDMarkdownModal = ({
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h2
-              id="import-md-modal-title"
-              className="text-base font-semibold text-gray-900"
-            >
+            <h2 id="import-md-modal-title" className="text-base font-semibold text-gray-900">
               Import from Markdown
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Only use this with markdown exported from pm-tools using the
-              &ldquo;Copy Markdown&rdquo; button. Importing manually edited or
-              externally generated markdown may produce unexpected results. This
-              will create a new PRD document.
+              Only use this with markdown exported from pm-tools using the &ldquo;Copy
+              Markdown&rdquo; button. Importing manually edited or externally generated markdown may
+              produce unexpected results. This will create a new PRD document.
             </p>
           </div>
           <button
@@ -101,8 +92,8 @@ const ImportPRDMarkdownModal = ({
           <textarea
             value={text}
             onChange={e => {
-              setText(e.target.value)
-              setError(null)
+              setText(e.target.value);
+              setError(null);
             }}
             placeholder="Paste pm-tools PRD markdown here…"
             rows={10}
@@ -128,7 +119,7 @@ const ImportPRDMarkdownModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImportPRDMarkdownModal
+export default ImportPRDMarkdownModal;

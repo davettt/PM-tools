@@ -33,3 +33,7 @@ local_data/
 
 # Claude Code context (personal, not committed)
 CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+.policy/

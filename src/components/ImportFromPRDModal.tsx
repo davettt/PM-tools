@@ -1,37 +1,33 @@
-import { useState, useEffect, useRef } from 'react'
-import type { SavedDocument, PRDForm, RequirementItem } from '../types'
+import { useState, useEffect, useRef } from 'react';
+import type { SavedDocument, PRDForm, RequirementItem } from '../types';
 
 interface ImportFromPRDModalProps {
-  onImport: (items: RequirementItem[]) => void
-  onClose: () => void
+  onImport: (items: RequirementItem[]) => void;
+  onClose: () => void;
 }
 
 const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
-  const [prds, setPrds] = useState<SavedDocument[]>([])
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [selectedPRDId, setSelectedPRDId] = useState<string | null>(null)
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const modalRef = useRef<HTMLDivElement>(null)
+  const [prds, setPrds] = useState<SavedDocument[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedPRDId, setSelectedPRDId] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/api/prds')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to load')
-        return res.json()
+        if (!res.ok) throw new Error('Failed to load');
+        return res.json();
       })
       .then((docs: SavedDocument[]) => {
         setPrds(
           docs
             .filter(d => !d.deletedAt)
-            .sort(
-              (a, b) =>
-                new Date(b.modifiedAt).getTime() -
-                new Date(a.modifiedAt).getTime()
-            )
-        )
+            .sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
+        );
       })
-      .catch(() => setLoadError('Could not load PRDs.'))
-  }, [])
+      .catch(() => setLoadError('Could not load PRDs.'));
+  }, []);
 
   useEffect(() => {
     const focusable = () =>
@@ -39,53 +35,52 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
         modalRef.current?.querySelectorAll<HTMLElement>(
           'button:not([disabled]), input[type="checkbox"]:not([disabled])'
         ) ?? []
-      )
-    focusable()[0]?.focus()
+      );
+    focusable()[0]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
-        return
+        onClose();
+        return;
       }
       if (e.key === 'Tab') {
-        const els = focusable()
-        if (els.length === 0) return
-        const first = els[0]!
-        const last = els[els.length - 1]!
+        const els = focusable();
+        if (els.length === 0) return;
+        const first = els[0]!;
+        const last = els[els.length - 1]!;
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
-  const selectedPRD = prds.find(p => p.id === selectedPRDId)
-  const selectedForm = selectedPRD?.data as PRDForm | undefined
-  const requirements = selectedForm?.requirements ?? []
+  const selectedPRD = prds.find(p => p.id === selectedPRDId);
+  const selectedForm = selectedPRD?.data as PRDForm | undefined;
+  const requirements = selectedForm?.requirements ?? [];
 
   const handleSelectPRD = (id: string) => {
-    setSelectedPRDId(id)
-    const doc = prds.find(p => p.id === id)
-    const reqs = (doc?.data as PRDForm)?.requirements ?? []
-    const initChecked: Record<string, boolean> = {}
+    setSelectedPRDId(id);
+    const doc = prds.find(p => p.id === id);
+    const reqs = (doc?.data as PRDForm)?.requirements ?? [];
+    const initChecked: Record<string, boolean> = {};
     for (const req of reqs) {
-      initChecked[req.id] = true
+      initChecked[req.id] = true;
     }
-    setChecked(initChecked)
-  }
+    setChecked(initChecked);
+  };
 
-  const toggleCheck = (id: string) =>
-    setChecked(prev => ({ ...prev, [id]: !prev[id] }))
+  const toggleCheck = (id: string) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
 
   const handleImport = () => {
     const items: RequirementItem[] = requirements
@@ -99,18 +94,18 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
           status: 'INCOMPLETE' as const,
           description: s.description,
         })),
-      }))
-    onImport(items)
-  }
+      }));
+    onImport(items);
+  };
 
-  const selectedCount = Object.values(checked).filter(Boolean).length
+  const selectedCount = Object.values(checked).filter(Boolean).length;
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-AU', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    })
+    });
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -123,10 +118,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2
-            id="import-prd-modal-title"
-            className="text-base font-semibold text-gray-900"
-          >
+          <h2 id="import-prd-modal-title" className="text-base font-semibold text-gray-900">
             Import Requirements from PRD
           </h2>
           <button
@@ -143,9 +135,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
           {loadError && <p className="text-red-600 text-sm">{loadError}</p>}
 
           {!loadError && prds.length === 0 && (
-            <p className="text-gray-400 text-sm text-center py-8">
-              No saved PRDs found.
-            </p>
+            <p className="text-gray-400 text-sm text-center py-8">No saved PRDs found.</p>
           )}
 
           {!selectedPRDId && prds.length > 0 && (
@@ -159,9 +149,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
                   onClick={() => handleSelectPRD(doc.id)}
                   className="w-full text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                 >
-                  <p className="font-medium text-gray-900 text-sm">
-                    {doc.title || 'Untitled'}
-                  </p>
+                  <p className="font-medium text-gray-900 text-sm">{doc.title || 'Untitled'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Modified {formatDate(doc.modifiedAt)}
                   </p>
@@ -179,9 +167,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
                 >
                   ← Back
                 </button>
-                <span className="text-sm text-gray-500">
-                  {selectedPRD?.title || 'Untitled'}
-                </span>
+                <span className="text-sm text-gray-500">{selectedPRD?.title || 'Untitled'}</span>
               </div>
 
               {requirements.length === 0 && (
@@ -192,9 +178,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
 
               {requirements.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-500 mb-3">
-                    Select which requirements to import:
-                  </p>
+                  <p className="text-sm text-gray-500 mb-3">Select which requirements to import:</p>
                   {requirements.map(req => (
                     <div key={req.id}>
                       <label className="flex gap-3 items-start px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -204,9 +188,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
                           onChange={() => toggleCheck(req.id)}
                           className="mt-0.5 shrink-0 accent-blue-600"
                         />
-                        <span className="text-sm text-gray-800">
-                          {req.description}
-                        </span>
+                        <span className="text-sm text-gray-800">{req.description}</span>
                       </label>
                       {(req.subtasks ?? []).length > 0 && (
                         <div className="ml-10 space-y-0.5">
@@ -250,7 +232,7 @@ const ImportFromPRDModal = ({ onImport, onClose }: ImportFromPRDModalProps) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ImportFromPRDModal
+export default ImportFromPRDModal;

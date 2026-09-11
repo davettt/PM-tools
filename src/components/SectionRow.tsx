@@ -1,6 +1,6 @@
 interface SectionRowProps {
-  children: React.ReactNode
-  onRemove: () => void
+  children: React.ReactNode;
+  onRemove: () => void;
 }
 
 const SectionRow = ({ children, onRemove }: SectionRowProps) => {
@@ -16,7 +16,7 @@ const SectionRow = ({ children, onRemove }: SectionRowProps) => {
         ✕
       </button>
     </div>
-  )
-}
+  );
+};
 
-export default SectionRow
+export default SectionRow;
