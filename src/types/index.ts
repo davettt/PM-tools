@@ -71,12 +71,12 @@ export interface AcceptedChanges {
 
 export interface SavedDocument {
   id: string;
-  type: 'code-review' | 'prd';
+  type: 'code-review' | 'prd' | 'proposal';
   title: string;
   createdAt: string;
   modifiedAt: string;
   deletedAt?: string;
-  data: CodeReviewForm | PRDForm;
+  data: CodeReviewForm | PRDForm | ProposalForm;
 }
 
 // PRD types
@@ -161,6 +161,26 @@ export interface PRDEnhancementResult {
   missingSections: string[];
 }
 
+export interface PRDTicket {
+  id: string;
+  title: string;
+  description: string;
+  acceptanceCriteria: string;
+  jiraUrl: string;
+  sourceRequirementIds: string[];
+}
+
+export interface PRDTicketSuggestion {
+  title: string;
+  description: string;
+  acceptanceCriteria: string;
+  sourceRequirementIds: string[];
+}
+
+export interface PRDTicketGenerationResult {
+  tickets: PRDTicketSuggestion[];
+}
+
 export interface PRDForm {
   title: string;
   meta: PRDMeta;
@@ -170,8 +190,90 @@ export interface PRDForm {
   successMetrics: PRDSuccessMetric[];
   scenarios: PRDScenario[];
   requirements: PRDRequirementItem[];
+  tickets: PRDTicket[];
   outOfScope: PRDOutOfScopeItem[];
   timeline: PRDTimelinePhase[];
   openQuestions: PRDOpenQuestion[];
+  notes: string;
+}
+
+// Proposal types
+
+export type ProposalStatus = 'Draft' | 'In Review' | 'Approved' | 'Rejected';
+
+export interface ProposalMeta {
+  author: string;
+  status: ProposalStatus;
+  sponsor: string;
+  stakeholders: string;
+}
+
+export interface ProposalSuccessCriterion {
+  id: string;
+  description: string;
+}
+
+export interface ProposalScopeItem {
+  id: string;
+  description: string;
+}
+
+export interface ProposalRisk {
+  id: string;
+  risk: string;
+  mitigation: string;
+}
+
+export interface ProposalOpenQuestion {
+  id: string;
+  question: string;
+}
+
+export interface ProposalTextFieldImprovement {
+  improved: string;
+  flags: string[];
+}
+
+export interface ProposalItemImprovement {
+  id: string;
+  improved: string;
+  flags: string[];
+}
+
+export interface ProposalRiskImprovement {
+  id: string;
+  improvedRisk: string;
+  improvedMitigation: string;
+  flags: string[];
+}
+
+export interface ProposalEnhancementResult {
+  sections: {
+    problemStatement?: ProposalTextFieldImprovement;
+    opportunity?: ProposalTextFieldImprovement;
+    proposedSolution?: ProposalTextFieldImprovement;
+    resourceEstimate?: ProposalTextFieldImprovement;
+    notes?: ProposalTextFieldImprovement;
+  };
+  successCriteria: ProposalItemImprovement[];
+  inScope: ProposalItemImprovement[];
+  outOfScope: ProposalItemImprovement[];
+  risks: ProposalRiskImprovement[];
+  openQuestions: ProposalItemImprovement[];
+  missingSections: string[];
+}
+
+export interface ProposalForm {
+  title: string;
+  meta: ProposalMeta;
+  problemStatement: string;
+  opportunity: string;
+  proposedSolution: string;
+  successCriteria: ProposalSuccessCriterion[];
+  inScope: ProposalScopeItem[];
+  outOfScope: ProposalScopeItem[];
+  risks: ProposalRisk[];
+  resourceEstimate: string;
+  openQuestions: ProposalOpenQuestion[];
   notes: string;
 }

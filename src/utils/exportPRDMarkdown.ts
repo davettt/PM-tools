@@ -90,6 +90,27 @@ export function generatePRDMarkdown(
   }
   lines.push('');
 
+  lines.push('## Tickets');
+  if (!form.tickets || form.tickets.length === 0) {
+    lines.push('_No tickets added._');
+  } else {
+    for (const t of form.tickets) {
+      lines.push(`### ${t.title || 'Untitled Ticket'}`);
+      if (t.description) lines.push(t.description);
+      if (t.acceptanceCriteria) {
+        lines.push('');
+        lines.push('**Acceptance Criteria**');
+        lines.push(t.acceptanceCriteria);
+      }
+      if (t.jiraUrl) {
+        lines.push('');
+        lines.push(`**Jira:** ${t.jiraUrl}`);
+      }
+      lines.push('');
+    }
+  }
+  lines.push('');
+
   lines.push('## Out of Scope');
   if (form.outOfScope.length === 0) {
     lines.push('_No out of scope items added._');

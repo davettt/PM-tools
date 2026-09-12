@@ -1,9 +1,10 @@
 import type { SavedDocument } from '../types';
 
 const DB_NAME = 'pm-tools';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_REVIEWS = 'reviews';
 const STORE_PRDS = 'prds';
+const STORE_PROPOSALS = 'proposals';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -16,6 +17,9 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_PRDS)) {
         db.createObjectStore(STORE_PRDS, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_PROPOSALS)) {
+        db.createObjectStore(STORE_PROPOSALS, { keyPath: 'id' });
       }
     };
 
@@ -103,4 +107,11 @@ export const prdsDB = {
   putAll: (docs: SavedDocument[]) => putAll(STORE_PRDS, docs),
   put: (doc: SavedDocument) => putOne(STORE_PRDS, doc),
   delete: (id: string) => deleteOne(STORE_PRDS, id),
+};
+
+export const proposalsDB = {
+  getAll: () => getAll(STORE_PROPOSALS),
+  putAll: (docs: SavedDocument[]) => putAll(STORE_PROPOSALS, docs),
+  put: (doc: SavedDocument) => putOne(STORE_PROPOSALS, doc),
+  delete: (id: string) => deleteOne(STORE_PROPOSALS, id),
 };

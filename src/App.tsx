@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import CodeReview from './pages/CodeReview';
 import PRD from './pages/PRD';
+import Proposal from './pages/Proposal';
 import Settings from './pages/Settings';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/code-review/:id" element={<CodeReview />} />
         <Route path="/prd/:id" element={<PRD />} />
+        <Route path="/proposal/:id" element={<Proposal />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>

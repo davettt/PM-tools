@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'local_data');
 const REVIEWS_FILE = join(DATA_DIR, 'reviews.json');
 const PRDS_FILE = join(DATA_DIR, 'prds.json');
+const PROPOSALS_FILE = join(DATA_DIR, 'proposals.json');
 
 async function ensureDataDir() {
   if (!existsSync(DATA_DIR)) {
@@ -43,6 +44,21 @@ async function readPrds() {
 async function writePrds(prds) {
   await ensureDataDir();
   await writeFile(PRDS_FILE, JSON.stringify(prds, null, 2), 'utf-8');
+}
+
+async function readProposals() {
+  await ensureDataDir();
+  if (!existsSync(PROPOSALS_FILE)) {
+    await writeFile(PROPOSALS_FILE, '[]', 'utf-8');
+    return [];
+  }
+  const raw = await readFile(PROPOSALS_FILE, 'utf-8');
+  return JSON.parse(raw);
+}
+
+async function writeProposals(proposals) {
+  await ensureDataDir();
+  await writeFile(PROPOSALS_FILE, JSON.stringify(proposals, null, 2), 'utf-8');
 }
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -343,6 +359,117 @@ export function createApp() {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to import PRDs' });
+    }
+  });
+
+  // Proposal routes
+
+  router.get('/api/proposals', async (_req, res) => {
+    try {
+      const raw = await readProposals();
+      const purged = purgeExpiredDeletes(raw);
+      if (purged.length !== raw.length) await writeProposals(purged);
+      res.json(purged);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to read proposals' });
+    }
+  });
+
+  router.get('/api/proposals/:id', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      const proposal = proposals.find(p => p.id === req.params.id);
+      if (!proposal) return res.status(404).json({ error: 'Not found' });
+      res.json(proposal);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to get proposal' });
+    }
+  });
+
+  router.post('/api/proposals', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      proposals.push(req.body);
+      await writeProposals(proposals);
+      res.status(201).json(req.body);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create proposal' });
+    }
+  });
+
+  router.put('/api/proposals/:id', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      const idx = proposals.findIndex(p => p.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Not found' });
+      proposals[idx] = req.body;
+      await writeProposals(proposals);
+      res.json(req.body);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update proposal' });
+    }
+  });
+
+  router.patch('/api/proposals/:id/soft-delete', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      const idx = proposals.findIndex(p => p.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Not found' });
+      proposals[idx].deletedAt = new Date().toISOString();
+      await writeProposals(proposals);
+      res.json(proposals[idx]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete proposal' });
+    }
+  });
+
+  router.patch('/api/proposals/:id/restore', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      const idx = proposals.findIndex(p => p.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Not found' });
+      delete proposals[idx].deletedAt;
+      await writeProposals(proposals);
+      res.json(proposals[idx]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to restore proposal' });
+    }
+  });
+
+  router.delete('/api/proposals/:id', async (req, res) => {
+    try {
+      const proposals = await readProposals();
+      const filtered = proposals.filter(p => p.id !== req.params.id);
+      if (filtered.length === proposals.length) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      await writeProposals(filtered);
+      res.status(204).send();
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete proposal' });
+    }
+  });
+
+  router.post('/api/proposals/import', async (req, res) => {
+    try {
+      const incoming = req.body;
+      if (!Array.isArray(incoming)) {
+        return res.status(400).json({ error: 'Expected an array of documents' });
+      }
+      const existing = await readProposals();
+      const { merged, added, updated, unchanged, skipped } = importDocs(incoming, existing);
+      await writeProposals(merged);
+      res.json({ added, updated, unchanged, skipped });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to import proposals' });
     }
   });
 

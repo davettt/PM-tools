@@ -43,8 +43,8 @@ const CodeReview = () => {
   const { saveDocument, updateDocument } = useReviewStore();
 
   const [form, setForm] = useState<CodeReviewForm>(emptyForm());
-  const [docId, setDocId] = useState<string>('');
-  const [createdAt, setCreatedAt] = useState<string>('');
+  const [docId, setDocId] = useState<string>(() => (isNew ? uuidv4() : ''));
+  const [createdAt, setCreatedAt] = useState<string>(() => (isNew ? new Date().toISOString() : ''));
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -71,8 +71,6 @@ const CodeReview = () => {
 
   useEffect(() => {
     if (isNew) {
-      setDocId(uuidv4());
-      setCreatedAt(new Date().toISOString());
       hasInitializedRef.current = true;
       return;
     }

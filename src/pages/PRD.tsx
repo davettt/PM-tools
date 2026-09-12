@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { usePRDStore } from '../stores/prdStore';
 import SectionRow from '../components/SectionRow';
 import ImportFromReviewModal from '../components/ImportFromReviewModal';
+import ImportFromProposalModal from '../components/ImportFromProposalModal';
+import type { ProposalImportData } from '../components/ImportFromProposalModal';
 import PRDEnhanceModal from '../components/PRDEnhanceModal';
 import type { PRDAcceptedChanges } from '../components/PRDEnhanceModal';
 import PasteAIResponseModal from '../components/PasteAIResponseModal';
@@ -13,6 +15,12 @@ import ImportPRDMarkdownModal from '../components/ImportPRDMarkdownModal';
 import { downloadPRDDocx } from '../utils/exportPRDDocx';
 import { printDocument } from '../utils/exportPrint';
 import { enhancePRD, buildFullPRDPrompt, parsePRDResponse } from '../utils/enhancePRDWithAI';
+import {
+  generateTickets,
+  buildFullTicketPrompt,
+  parseTicketResponse,
+} from '../utils/generateTicketsWithAI';
+import TicketReviewModal from '../components/TicketReviewModal';
 import type {
   PRDForm,
   PRDMeta,
@@ -23,6 +31,8 @@ import type {
   PRDOutOfScopeItem,
   PRDTimelinePhase,
   PRDOpenQuestion,
+  PRDTicket,
+  PRDTicketSuggestion,
   PRDEnhancementResult,
   SavedDocument,
 } from '../types';
@@ -53,6 +63,7 @@ const emptyForm = (): PRDForm => ({
     { id: uuidv4(), title: 'Error State', content: '' },
   ],
   requirements: [],
+  tickets: [],
   outOfScope: [],
   timeline: [
     {
@@ -89,9 +100,10 @@ const PRD = () => {
   const { saveDocument, updateDocument } = usePRDStore();
 
   const [form, setForm] = useState<PRDForm>(emptyForm());
-  const [docId, setDocId] = useState<string>('');
-  const [createdAt, setCreatedAt] = useState<string>('');
-  const [modifiedAt, setModifiedAt] = useState<string>('');
+  const [docId, setDocId] = useState<string>(() => (isNew ? uuidv4() : ''));
+  const initTime = isNew ? new Date().toISOString() : '';
+  const [createdAt, setCreatedAt] = useState<string>(initTime);
+  const [modifiedAt, setModifiedAt] = useState<string>(initTime);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -105,11 +117,18 @@ const PRD = () => {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [showImportMarkdownModal, setShowImportMarkdownModal] = useState(false);
+  const [showImportProposalModal, setShowImportProposalModal] = useState(false);
+  const [ticketSuggestions, setTicketSuggestions] = useState<PRDTicketSuggestion[] | null>(null);
+  const [isGeneratingTickets, setIsGeneratingTickets] = useState(false);
+  const [ticketGenError, setTicketGenError] = useState<string | null>(null);
+  const [ticketPromptCopied, setTicketPromptCopied] = useState(false);
+  const [showTicketPasteModal, setShowTicketPasteModal] = useState(false);
 
   const hasInitializedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scenariosSectionRef = useRef<HTMLDivElement>(null);
   const requirementsSectionRef = useRef<HTMLDivElement>(null);
+  const ticketsSectionRef = useRef<HTMLDivElement>(null);
   const metricsSectionRef = useRef<HTMLDivElement>(null);
   const outOfScopeSectionRef = useRef<HTMLDivElement>(null);
   const questionsSectionRef = useRef<HTMLDivElement>(null);
@@ -123,10 +142,6 @@ const PRD = () => {
 
   useEffect(() => {
     if (isNew) {
-      setDocId(uuidv4());
-      const now = new Date().toISOString();
-      setCreatedAt(now);
-      setModifiedAt(now);
       hasInitializedRef.current = true;
       return;
     }
@@ -500,6 +515,68 @@ const PRD = () => {
   const removeQuestion = (id: string) =>
     update({ openQuestions: form.openQuestions.filter(q => q.id !== id) });
 
+  // Tickets
+  const addTicket = () => {
+    update({
+      tickets: [
+        ...form.tickets,
+        {
+          id: uuidv4(),
+          title: '',
+          description: '',
+          acceptanceCriteria: '',
+          jiraUrl: '',
+          sourceRequirementIds: [],
+        },
+      ],
+    });
+    setTimeout(() => {
+      const inputs = ticketsSectionRef.current?.querySelectorAll<HTMLInputElement>(
+        'input[data-field="title"]'
+      );
+      inputs?.[inputs.length - 1]?.focus();
+    }, 0);
+  };
+  const updateTicket = (id: string, patch: Partial<PRDTicket>) =>
+    update({ tickets: form.tickets.map(t => (t.id === id ? { ...t, ...patch } : t)) });
+  const removeTicket = (id: string) => update({ tickets: form.tickets.filter(t => t.id !== id) });
+
+  const handleGenerateTickets = async () => {
+    if (form.requirements.length === 0) {
+      setTicketGenError('Add requirements before generating tickets.');
+      return;
+    }
+    setIsGeneratingTickets(true);
+    setTicketGenError(null);
+    try {
+      await handleSave();
+      const result = await generateTickets(form);
+      setTicketSuggestions(result.tickets);
+    } catch (err) {
+      setTicketGenError(err instanceof Error ? err.message : 'Ticket generation failed');
+    } finally {
+      setIsGeneratingTickets(false);
+    }
+  };
+
+  const handleCopyTicketPrompt = async () => {
+    await navigator.clipboard.writeText(buildFullTicketPrompt(form));
+    setTicketPromptCopied(true);
+    setTimeout(() => setTicketPromptCopied(false), 2000);
+  };
+
+  const handlePasteTicketResponse = (text: string) => {
+    try {
+      const result = parseTicketResponse(text);
+      setTicketSuggestions(result.tickets);
+      setShowTicketPasteModal(false);
+      setTicketGenError(null);
+    } catch {
+      setTicketGenError('Could not parse AI response. Make sure you pasted the full JSON output.');
+      setShowTicketPasteModal(false);
+    }
+  };
+
   if (loadError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -719,6 +796,12 @@ const PRD = () => {
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
             >
               {copied ? '✓ Copied' : 'Copy Markdown'}
+            </button>
+            <button
+              onClick={() => setShowImportProposalModal(true)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
+            >
+              Import from Proposal
             </button>
             <button
               onClick={() => setShowImportMarkdownModal(true)}
@@ -981,6 +1064,141 @@ const PRD = () => {
           </button>
         </section>
 
+        {/* Tickets */}
+        <section>
+          <div className="flex items-center justify-between mb-3 print:hidden">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Tickets</h2>
+            <div className="flex items-center gap-2">
+              <AIEnhanceDropdown
+                isEnhancing={isGeneratingTickets}
+                onEnhance={handleGenerateTickets}
+                onCopyPrompt={handleCopyTicketPrompt}
+                onPasteResponse={() => setShowTicketPasteModal(true)}
+                label="Generate from Requirements"
+                enhancingLabel="Generating…"
+              />
+            </div>
+          </div>
+          <h2 className="hidden print:block text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Tickets
+          </h2>
+          {ticketPromptCopied && (
+            <p className="text-sm text-green-600 mb-2 print:hidden">
+              {'✓'} Prompt copied — paste into your AI tool, then use &quot;Paste AI response&quot;
+              to import the result.
+            </p>
+          )}
+          {ticketGenError && (
+            <p className="text-sm text-red-500 mb-2 print:hidden">{ticketGenError}</p>
+          )}
+          <div className="space-y-3" ref={ticketsSectionRef}>
+            {form.tickets.map(ticket => (
+              <div
+                key={ticket.id}
+                className="group bg-white border border-gray-200 rounded-lg p-4 space-y-3"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <input
+                      type="text"
+                      data-field="title"
+                      value={ticket.title}
+                      onChange={e => updateTicket(ticket.id, { title: e.target.value })}
+                      placeholder="Ticket title"
+                      className="w-full text-sm font-medium text-gray-900 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
+                    />
+                    <div>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Description
+                      </label>
+                      <textarea
+                        value={ticket.description}
+                        onChange={e => updateTicket(ticket.id, { description: e.target.value })}
+                        placeholder="What to build"
+                        rows={2}
+                        className="mt-0.5 w-full text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Acceptance Criteria
+                      </label>
+                      <textarea
+                        value={ticket.acceptanceCriteria}
+                        onChange={e =>
+                          updateTicket(ticket.id, { acceptanceCriteria: e.target.value })
+                        }
+                        placeholder="- Should ..."
+                        rows={2}
+                        className="mt-0.5 w-full text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300 resize-none field-sizing-content"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Jira URL
+                      </label>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <input
+                          type="url"
+                          value={ticket.jiraUrl}
+                          onChange={e => updateTicket(ticket.id, { jiraUrl: e.target.value })}
+                          placeholder="https://yourteam.atlassian.net/browse/..."
+                          className="flex-1 text-sm text-gray-800 bg-transparent border-b border-gray-200 outline-none focus:border-blue-400 py-1 placeholder-gray-300"
+                        />
+                        {ticket.jiraUrl && (
+                          <a
+                            href={ticket.jiraUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-700 shrink-0 print:hidden"
+                            title="Open in Jira"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              className="w-4 h-4"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z"
+                                clipRule="evenodd"
+                              />
+                              <path
+                                fillRule="evenodd"
+                                d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeTicket(ticket.id)}
+                    className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-1 print:hidden"
+                    aria-label="Remove ticket"
+                  >
+                    &#10005;
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {form.tickets.length === 0 && (
+            <p className="text-sm text-gray-400 mt-1">
+              No tickets yet. Generate from requirements or add manually.
+            </p>
+          )}
+          <button
+            onClick={addTicket}
+            className="mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors print:hidden"
+          >
+            + Add ticket
+          </button>
+        </section>
+
         {/* Out of Scope */}
         <section>
           <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
@@ -1193,6 +1411,63 @@ const PRD = () => {
         />
       )}
 
+      {showImportProposalModal && (
+        <ImportFromProposalModal
+          onImport={(data: ProposalImportData) => {
+            const patch: Partial<PRDForm> = {};
+            const parts: string[] = [];
+            if (data.problemStatement) parts.push(data.problemStatement);
+            if (data.proposedSolution) parts.push(data.proposedSolution);
+            if (parts.length > 0) {
+              patch.overview = form.overview
+                ? `${form.overview}\n\n${parts.join('\n\n')}`
+                : parts.join('\n\n');
+            }
+            if (data.successCriteria.length > 0) {
+              patch.successMetrics = [
+                ...form.successMetrics,
+                ...data.successCriteria.map(c => ({
+                  id: c.id,
+                  metric: c.description,
+                })),
+              ];
+            }
+            if (data.inScope.length > 0) {
+              patch.requirements = [
+                ...form.requirements,
+                ...data.inScope.map(s => ({
+                  id: s.id,
+                  status: 'INCOMPLETE' as const,
+                  description: s.description,
+                  subtasks: [],
+                })),
+              ];
+            }
+            if (data.outOfScope.length > 0) {
+              patch.outOfScope = [
+                ...form.outOfScope,
+                ...data.outOfScope.map(s => ({
+                  id: s.id,
+                  description: s.description,
+                })),
+              ];
+            }
+            if (data.openQuestions.length > 0) {
+              patch.openQuestions = [
+                ...form.openQuestions,
+                ...data.openQuestions.map(q => ({
+                  id: q.id,
+                  question: q.question,
+                })),
+              ];
+            }
+            update(patch);
+            setShowImportProposalModal(false);
+          }}
+          onClose={() => setShowImportProposalModal(false)}
+        />
+      )}
+
       {showPasteModal && (
         <PasteAIResponseModal
           onSubmit={handlePasteResponse}
@@ -1213,6 +1488,24 @@ const PRD = () => {
           form={form}
           onApply={applyPRDEnhancements}
           onClose={() => setEnhanceResult(null)}
+        />
+      )}
+
+      {showTicketPasteModal && (
+        <PasteAIResponseModal
+          onSubmit={handlePasteTicketResponse}
+          onClose={() => setShowTicketPasteModal(false)}
+        />
+      )}
+
+      {ticketSuggestions && (
+        <TicketReviewModal
+          suggestions={ticketSuggestions}
+          onAccept={tickets => {
+            update({ tickets: [...form.tickets, ...tickets] });
+            setTicketSuggestions(null);
+          }}
+          onClose={() => setTicketSuggestions(null)}
         />
       )}
     </div>

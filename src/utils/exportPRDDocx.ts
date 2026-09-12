@@ -115,6 +115,23 @@ export async function downloadPRDDocx(
   }
   children.push(empty());
 
+  children.push(heading2('Tickets'));
+  if (!form.tickets || form.tickets.length === 0) {
+    children.push(body('No tickets added.'));
+  } else {
+    for (const t of form.tickets) {
+      children.push(heading3(t.title || 'Untitled Ticket'));
+      if (t.description) children.push(body(t.description));
+      if (t.acceptanceCriteria) {
+        children.push(bold('Acceptance Criteria', ''));
+        children.push(body(t.acceptanceCriteria));
+      }
+      if (t.jiraUrl) children.push(bold('Jira: ', t.jiraUrl));
+      children.push(empty());
+    }
+  }
+  children.push(empty());
+
   children.push(heading2('Out of Scope'));
   if (form.outOfScope.length === 0) {
     children.push(body('No out of scope items added.'));

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReviewStore } from '../stores/reviewStore';
 import { usePRDStore } from '../stores/prdStore';
+import { useProposalStore } from '../stores/proposalStore';
 import type { SavedDocument } from '../types';
 
 const Home = () => {
@@ -26,10 +27,21 @@ const Home = () => {
     deleteDocument: deletePRD,
   } = usePRDStore();
 
+  const {
+    documents: proposals,
+    loading: proposalsLoading,
+    error: proposalsError,
+    fetchDocuments: fetchProposals,
+    softDeleteDocument: softDeleteProposal,
+    restoreDocument: restoreProposal,
+    deleteDocument: deleteProposal,
+  } = useProposalStore();
+
   useEffect(() => {
     fetchReviews();
     fetchPRDs();
-  }, [fetchReviews, fetchPRDs]);
+    fetchProposals();
+  }, [fetchReviews, fetchPRDs, fetchProposals]);
 
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [confirmingPermanent, setConfirmingPermanent] = useState<string | null>(null);
@@ -55,14 +67,18 @@ const Home = () => {
   const sortByModified = (docs: SavedDocument[]) =>
     [...docs].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
 
+  const activeProposals = proposals.filter(d => !d.deletedAt);
   const activePRDs = prds.filter(d => !d.deletedAt);
   const activeReviews = reviews.filter(d => !d.deletedAt);
-  const deletedDocs = [...prds.filter(d => d.deletedAt), ...reviews.filter(d => d.deletedAt)].sort(
-    (a, b) => new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime()
-  );
+  const deletedDocs = [
+    ...proposals.filter(d => d.deletedAt),
+    ...prds.filter(d => d.deletedAt),
+    ...reviews.filter(d => d.deletedAt),
+  ].sort((a, b) => new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime());
 
-  const loading = reviewsLoading || prdsLoading;
-  const bothEmpty = activePRDs.length === 0 && activeReviews.length === 0;
+  const loading = reviewsLoading || prdsLoading || proposalsLoading;
+  const allEmpty =
+    activeProposals.length === 0 && activePRDs.length === 0 && activeReviews.length === 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,6 +86,12 @@ const Home = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-900">PM Tools</h1>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/proposal/new')}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
+            >
+              + New Proposal
+            </button>
             <button
               onClick={() => navigate('/prd/new')}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium transition-colors border border-gray-300"
@@ -108,13 +130,14 @@ const Home = () => {
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
         {loading && <p className="text-gray-500 text-sm">Connecting to local server…</p>}
 
-        {(reviewsError || prdsError) && (
+        {(reviewsError || prdsError || proposalsError) && (
           <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700 text-sm space-y-2">
             <p>Failed to load documents. Try refreshing the page.</p>
             <button
               onClick={() => {
                 fetchReviews();
                 fetchPRDs();
+                fetchProposals();
               }}
               className="text-red-700 underline text-sm hover:text-red-900"
             >
@@ -123,10 +146,80 @@ const Home = () => {
           </div>
         )}
 
-        {!loading && !reviewsError && !prdsError && bothEmpty && (
+        {!loading && !reviewsError && !prdsError && !proposalsError && allEmpty && (
           <div className="text-center py-20 text-gray-400">
             <p className="text-lg mb-2">No documents yet</p>
-            <p className="text-sm">Create a PRD or Acceptance Review to get started</p>
+            <p className="text-sm">Create a Proposal, PRD, or Acceptance Review to get started</p>
+          </div>
+        )}
+
+        {/* Proposals */}
+        {!proposalsError && (activeProposals.length > 0 || !loading) && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                Proposals
+              </h2>
+              {activeProposals.length === 0 && !loading && (
+                <button
+                  onClick={() => navigate('/proposal/new')}
+                  className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  + New Proposal
+                </button>
+              )}
+            </div>
+            {activeProposals.length === 0 && !loading ? (
+              <p className="text-sm text-gray-400">No proposals yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {sortByModified(activeProposals).map(doc => (
+                  <div
+                    key={doc.id}
+                    className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between hover:border-gray-300 transition-colors"
+                  >
+                    <button
+                      onClick={() => navigate(`/proposal/${doc.id}`)}
+                      className="flex-1 text-left"
+                    >
+                      <p className="font-medium text-gray-900">
+                        {doc.title || 'Untitled Proposal'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Modified {formatDate(doc.modifiedAt)}
+                      </p>
+                    </button>
+                    {confirmingDelete === doc.id ? (
+                      <span className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={async () => {
+                            await softDeleteProposal(doc.id);
+                            setConfirmingDelete(null);
+                          }}
+                          className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setConfirmingDelete(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingDelete(doc.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors ml-4 text-sm"
+                        aria-label="Delete proposal"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -282,8 +375,18 @@ const Home = () => {
               <div className="space-y-2 mt-4">
                 {deletedDocs.map(doc => {
                   const days = daysUntilPurge(doc.deletedAt!);
-                  const restore = doc.type === 'prd' ? restorePRD : restoreReview;
-                  const permanentDelete = doc.type === 'prd' ? deletePRD : deleteReview;
+                  const restore =
+                    doc.type === 'proposal'
+                      ? restoreProposal
+                      : doc.type === 'prd'
+                        ? restorePRD
+                        : restoreReview;
+                  const permanentDelete =
+                    doc.type === 'proposal'
+                      ? deleteProposal
+                      : doc.type === 'prd'
+                        ? deletePRD
+                        : deleteReview;
                   return (
                     <div
                       key={doc.id}
@@ -293,7 +396,11 @@ const Home = () => {
                         <p className="font-medium text-gray-600">
                           {doc.title || 'Untitled'}
                           <span className="ml-2 text-xs font-normal text-gray-400">
-                            {doc.type === 'prd' ? 'PRD' : 'Review'}
+                            {doc.type === 'proposal'
+                              ? 'Proposal'
+                              : doc.type === 'prd'
+                                ? 'PRD'
+                                : 'Review'}
                           </span>
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">

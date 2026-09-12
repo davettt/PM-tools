@@ -30,6 +30,7 @@ export default async function smoke(base) {
   await test("GET", "/", base, { description: "Main page" });
   await test("GET", "/api/reviews", base, { description: "Get reviews" });
   await test("GET", "/api/prds", base, { description: "Get PRDs" });
+  await test("GET", "/api/proposals", base, { description: "Get proposals" });
 
   await test("POST", "/api/reviews", base, {
     body: {
@@ -64,6 +65,40 @@ export default async function smoke(base) {
   });
 
   await test("GET", "/api/prds/test-prd-1", base, { description: "Get single PRD" });
+
+  await test("POST", "/api/proposals", base, {
+    body: {
+      id: "test-proposal-1",
+      type: "proposal",
+      title: "Test Proposal",
+      createdAt: new Date().toISOString(),
+      modifiedAt: new Date().toISOString(),
+      data: {
+        title: "Test Proposal",
+        meta: { author: "", status: "Draft", sponsor: "", stakeholders: "" },
+        problemStatement: "",
+        opportunity: "",
+        proposedSolution: "",
+        successCriteria: [],
+        inScope: [],
+        outOfScope: [],
+        risks: [],
+        resourceEstimate: "",
+        openQuestions: [],
+        notes: "",
+      },
+    },
+    expectedStatus: 201,
+    description: "Create proposal",
+  });
+
+  await test("GET", "/api/proposals/test-proposal-1", base, {
+    description: "Get single proposal",
+  });
+  await test("GET", "/api/proposals/nonexistent", base, {
+    expectedStatus: 404,
+    description: "Get missing proposal returns 404",
+  });
 
   await test("POST", "/api/ai", base, {
     body: { prompt: "test", systemPrompt: "test" },

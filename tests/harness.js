@@ -13,6 +13,7 @@ function seedTestData() {
   mkdirSync(TEST_DATA_DIR, { recursive: true });
   writeFileSync(join(TEST_DATA_DIR, "reviews.json"), "[]");
   writeFileSync(join(TEST_DATA_DIR, "prds.json"), "[]");
+  writeFileSync(join(TEST_DATA_DIR, "proposals.json"), "[]");
 }
 
 async function waitForServer(url, timeoutMs = 10000) {

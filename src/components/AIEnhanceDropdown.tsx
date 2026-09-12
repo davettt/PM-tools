@@ -5,6 +5,8 @@ interface AIEnhanceDropdownProps {
   onEnhance: () => void;
   onCopyPrompt: () => void;
   onPasteResponse: () => void;
+  label?: string;
+  enhancingLabel?: string;
 }
 
 const AIEnhanceDropdown = ({
@@ -12,6 +14,8 @@ const AIEnhanceDropdown = ({
   onEnhance,
   onCopyPrompt,
   onPasteResponse,
+  label = 'AI Enhance',
+  enhancingLabel = 'Reviewing…',
 }: AIEnhanceDropdownProps) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,11 +62,11 @@ const AIEnhanceDropdown = ({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            Reviewing…
+            {enhancingLabel}
           </>
         ) : (
           <>
-            AI Enhance
+            {label}
             <svg
               className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}
               viewBox="0 0 20 20"

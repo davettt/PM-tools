@@ -5,6 +5,38 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-09-12
+
+### Added
+
+- **Tickets section in PRDs**: AI generates Jira-ready tickets from PRD requirements (title, description, acceptance criteria) with a review modal for editing and selecting suggestions before accepting
+- **Ticket Jira URL field**: each ticket supports a Jira URL field for linking after creation in external issue tracking systems
+- **Ticket generation dual AI path**: internal (API key) and external (copy/paste from approved AI tools) workflows converge on identical accept/reject UI
+- **Tickets in PRD exports**: tickets are included in Markdown and .docx exports with title, description, and acceptance criteria
+- **TicketReviewModal component**: new modal for reviewing, editing, and selecting AI-generated ticket suggestions before persisting
+- **generateTicketsWithAI utility**: PRD-specific AI utility with system prompt for generating structured ticket suggestions from requirements
+- **AIEnhanceDropdown props**: added custom `label` and `enhancingLabel` props for flexible button text across document types
+
+## [1.8.0] - 2026-09-12
+
+### Added
+
+- **Proposal document type**: new first step in the PM lifecycle. Lightweight pitch documents that capture the case for a project before committing to a full PRD
+- **Proposal editor**: form with sections for Problem Statement, Opportunity, Proposed Solution, Success Criteria, In Scope, Out of Scope, Risks & Mitigations, Resource Estimate, Open Questions, Notes
+- **Proposal metadata fields**: Author, Status (Draft / In Review / Approved / Rejected), Sponsor, and Key Stakeholders
+- **Proposal AI enhancement**: dual-path support with internal API key (Claude Haiku) or external copy/paste workflow for corporate-approved AI tools; uses identical accept/reject UI as PRD and Code Review
+- **Proposal export** (Markdown, DOCX, and PDF) with full metadata and section rendering
+- **Import from Proposal into PRD**: button on PRD page opens modal to select and carry forward proposal data
+- **Proposal listing on Home page**: displays Proposals section above PRDs, reflecting the PM lifecycle order; supports soft-delete with 7-day retention and restore
+- **Proposal API endpoints** (`/api/proposals` GET, POST, PUT, DELETE) with isolated test data directory support via `DATA_DIR` environment variable
+- **Proposal persistence** in `local_data/proposals.json` with `SavedDocument` wrapper; IndexedDB caching via `proposalStore` Zustand store
+- Smoke test suite expanded from 10 to 14 tests to cover proposal CRUD endpoints
+
+### Changed
+
+- CLAUDE.md updated to document Proposal as the third document type alongside Code Review and PRD
+- Home page navigation and lifecycle flow now include Proposals in document count
+
 ## [1.7.0] - 2026-05-06
 
 ### Changed
