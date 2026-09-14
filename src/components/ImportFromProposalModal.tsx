@@ -8,6 +8,7 @@ export interface ProposalImportData {
   inScope: { id: string; description: string }[];
   outOfScope: { id: string; description: string }[];
   openQuestions: { id: string; question: string }[];
+  customSections: { title: string; content: string }[];
 }
 
 interface ImportFromProposalModalProps {
@@ -21,7 +22,8 @@ type FieldKey =
   | `criterion-${string}`
   | `in-${string}`
   | `out-${string}`
-  | `q-${string}`;
+  | `q-${string}`
+  | `custom-${string}`;
 
 const ImportFromProposalModal = ({ onImport, onClose }: ImportFromProposalModalProps) => {
   const [proposals, setProposals] = useState<SavedDocument[]>([]);
@@ -106,6 +108,9 @@ const ImportFromProposalModal = ({ onImport, onClose }: ImportFromProposalModalP
     for (const q of form.openQuestions) {
       if (q.question) init[`q-${q.id}`] = true;
     }
+    for (const section of form.customSections ?? []) {
+      if (section.title || section.content) init[`custom-${section.id}`] = true;
+    }
     setChecked(init);
   };
 
@@ -129,6 +134,9 @@ const ImportFromProposalModal = ({ onImport, onClose }: ImportFromProposalModalP
       openQuestions: selectedForm.openQuestions
         .filter(q => checked[`q-${q.id}`])
         .map(q => ({ id: crypto.randomUUID(), question: q.question })),
+      customSections: (selectedForm.customSections ?? [])
+        .filter(section => checked[`custom-${section.id}`])
+        .map(section => ({ title: section.title, content: section.content })),
     };
 
     onImport(data);
@@ -302,6 +310,21 @@ const ImportFromProposalModal = ({ onImport, onClose }: ImportFromProposalModalP
                     </p>
                     {selectedForm.openQuestions.map(q =>
                       renderCheckItem(`q-${q.id}`, '', q.question)
+                    )}
+                  </div>
+                )}
+
+                {(selectedForm.customSections ?? []).length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide px-3 mb-1">
+                      Additional Sections &rarr; PRD Overview
+                    </p>
+                    {selectedForm.customSections.map(section =>
+                      renderCheckItem(
+                        `custom-${section.id}`,
+                        section.title || 'Untitled section',
+                        section.content
+                      )
                     )}
                   </div>
                 )}

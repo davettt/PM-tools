@@ -1,8 +1,17 @@
 # PM Tools
 
-A local-first PM productivity tool for writing structured PRDs and code reviews.
+A local-first PM productivity tool for writing proposals, structured PRDs, and acceptance reviews.
 
 ## Features
+
+### Proposal Creator
+
+- **Lightweight structured form** — Problem Statement, Opportunity, Proposed Solution, Success Criteria, Scope, Risks, Resource Estimate, Open Questions, and Notes
+- **Flexible subheadings** — add optional named subsections such as Principles, Roles, Process, or Prototype beneath the relevant main section
+- **Images and diagrams** — attach PNG or JPEG flowcharts with captions and associate them with a main or custom section
+- **AI writing enhancement** — standard and custom text sections work with both the API-key and copy/paste AI workflows; image captions provide context without sending image files
+- **Proposal handoff** — import selected proposal content, including custom subsections, into a PRD
+- **Export options** — Copy Markdown, Print to PDF, and Download .docx with custom content and diagram support
 
 ### PRD Creator
 
@@ -28,7 +37,7 @@ A local-first PM productivity tool for writing structured PRDs and code reviews.
 
 - **Auto-save** — debounced 1.5s auto-save after any input; immediate save before any export
 - **Keyboard friendly** — press Enter in any row to add the next item
-- **Home dashboard** — lists all PRDs and Code Reviews sorted by last modified; soft delete with 7-day retention before permanent deletion; collapsible "Recently Deleted" section with restore option
+- **Home dashboard** — lists Proposals, PRDs, and Acceptance Reviews sorted by last modified; soft delete with 7-day retention before permanent deletion; collapsible "Recently Deleted" section with restore option
 - **Filesystem persistence** — documents saved to `local_data/` via a lightweight Express backend
 - **PWA-ready** — favicon, web manifest, installable as a browser app
 
@@ -57,7 +66,7 @@ For use in organisations with data privacy policies or AI usage governance requi
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS
 - **Backend**: Express 5 (mounted on Vite dev server in dev; standalone in production)
 - **State**: Zustand
-- **Persistence**: Filesystem JSON (`local_data/reviews.json`, `local_data/prds.json`)
+- **Persistence**: Filesystem JSON plus local proposal image files under `local_data/`
 - **Export**: `docx` for Word/Google Docs, `window.print()` for PDF
 
 ## AI Features
@@ -141,6 +150,8 @@ Documents are stored in `local_data/` — gitignored, filesystem only.
 
 - `local_data/reviews.json` — Code Reviews
 - `local_data/prds.json` — PRDs
+- `local_data/proposals.json` — Proposals
+- `local_data/proposal-images/` — Proposal images and diagrams
 
 ### Backup
 

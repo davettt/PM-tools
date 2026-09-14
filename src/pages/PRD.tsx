@@ -1418,6 +1418,9 @@ const PRD = () => {
             const parts: string[] = [];
             if (data.problemStatement) parts.push(data.problemStatement);
             if (data.proposedSolution) parts.push(data.proposedSolution);
+            for (const section of data.customSections) {
+              parts.push(`### ${section.title || 'Untitled section'}\n${section.content}`);
+            }
             if (parts.length > 0) {
               patch.overview = form.overview
                 ? `${form.overview}\n\n${parts.join('\n\n')}`

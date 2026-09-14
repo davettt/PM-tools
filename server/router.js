@@ -1,14 +1,54 @@
 import express from 'express';
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile, mkdir, rename, unlink, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'local_data');
 const REVIEWS_FILE = join(DATA_DIR, 'reviews.json');
 const PRDS_FILE = join(DATA_DIR, 'prds.json');
 const PROPOSALS_FILE = join(DATA_DIR, 'proposals.json');
+const PROPOSAL_IMAGES_DIR = join(DATA_DIR, 'proposal-images');
+const SAFE_ID = /^[a-zA-Z0-9_-]+$/;
+const IMAGE_TYPES = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+};
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+async function atomicWrite(file, data) {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  await writeFile(temporary, data);
+  await rename(temporary, file);
+}
+
+function validId(value) {
+  return typeof value === 'string' && SAFE_ID.test(value);
+}
+
+function imagePath(proposalId, imageId, mimeType) {
+  const extension = IMAGE_TYPES[mimeType];
+  if (!validId(proposalId) || !validId(imageId) || !extension) return null;
+  return join(PROPOSAL_IMAGES_DIR, proposalId, `${imageId}.${extension}`);
+}
+
+function hasExpectedImageSignature(buffer, mimeType) {
+  if (mimeType === 'image/png') {
+    return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'));
+  }
+  return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+}
+
+function findStoredImage(proposalId, imageId) {
+  if (!validId(proposalId) || !validId(imageId)) return null;
+  for (const mimeType of Object.keys(IMAGE_TYPES)) {
+    const file = imagePath(proposalId, imageId, mimeType);
+    if (file && existsSync(file)) return { file, mimeType };
+  }
+  return null;
+}
 
 async function ensureDataDir() {
   if (!existsSync(DATA_DIR)) {
@@ -414,6 +454,59 @@ export function createApp() {
     }
   });
 
+  router.post('/api/proposals/:id/images', async (req, res) => {
+    try {
+      if (!validId(req.params.id)) return res.status(400).json({ error: 'Invalid proposal ID' });
+      const proposals = await readProposals();
+      if (!proposals.some(proposal => proposal.id === req.params.id)) {
+        return res.status(404).json({ error: 'Proposal not found' });
+      }
+      const { filename, mimeType, data } = req.body;
+      if (typeof filename !== 'string' || !IMAGE_TYPES[mimeType] || typeof data !== 'string') {
+        return res.status(400).json({ error: 'Invalid image' });
+      }
+      const buffer = Buffer.from(data, 'base64');
+      if (buffer.length === 0 || buffer.length > MAX_IMAGE_BYTES) {
+        return res.status(400).json({ error: 'Image must be no larger than 5 MB' });
+      }
+      if (!hasExpectedImageSignature(buffer, mimeType)) {
+        return res.status(400).json({ error: 'Image content does not match its file type' });
+      }
+      const imageId = randomUUID();
+      const file = imagePath(req.params.id, imageId, mimeType);
+      const directory = join(PROPOSAL_IMAGES_DIR, req.params.id);
+      await mkdir(directory, { recursive: true });
+      await atomicWrite(file, buffer);
+      res.status(201).json({ id: imageId, filename: filename.slice(0, 200), mimeType });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  });
+
+  router.get('/api/proposals/:id/images/:imageId', async (req, res) => {
+    try {
+      const image = findStoredImage(req.params.id, req.params.imageId);
+      if (!image) return res.status(404).json({ error: 'Not found' });
+      res.type(image.mimeType).send(await readFile(image.file));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to read image' });
+    }
+  });
+
+  router.delete('/api/proposals/:id/images/:imageId', async (req, res) => {
+    try {
+      const image = findStoredImage(req.params.id, req.params.imageId);
+      if (!image) return res.status(404).json({ error: 'Not found' });
+      await unlink(image.file);
+      res.status(204).send();
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete image' });
+    }
+  });
+
   router.patch('/api/proposals/:id/soft-delete', async (req, res) => {
     try {
       const proposals = await readProposals();
@@ -450,6 +543,9 @@ export function createApp() {
         return res.status(404).json({ error: 'Not found' });
       }
       await writeProposals(filtered);
+      if (validId(req.params.id)) {
+        await rm(join(PROPOSAL_IMAGES_DIR, req.params.id), { recursive: true, force: true });
+      }
       res.status(204).send();
     } catch (err) {
       console.error(err);

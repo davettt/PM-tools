@@ -7,6 +7,22 @@ export function generateProposalMarkdown(
 ): string {
   const lines: string[] = [];
   const title = form.title || 'Untitled Proposal';
+  const appendSupportingContent = (sectionId: string) => {
+    for (const section of form.customSections.filter(item => item.parentSectionId === sectionId)) {
+      if (!section.title && !section.content) continue;
+      lines.push('');
+      lines.push(`### ${section.title || 'Untitled Subheading'}`);
+      lines.push(section.content || '_Not completed._');
+      for (const image of form.images.filter(item => item.sectionId === section.id)) {
+        lines.push('');
+        lines.push(`**Image:** ${image.caption || image.filename} — ${image.filename}`);
+      }
+    }
+    for (const image of form.images.filter(item => item.sectionId === sectionId)) {
+      lines.push('');
+      lines.push(`**Image:** ${image.caption || image.filename} — ${image.filename}`);
+    }
+  };
 
   lines.push(`# Proposal [${title}]`);
   lines.push('');
@@ -38,14 +54,17 @@ export function generateProposalMarkdown(
 
   lines.push('## Problem Statement');
   lines.push(form.problemStatement || '_Not completed._');
+  appendSupportingContent('problemStatement');
   lines.push('');
 
   lines.push('## Opportunity');
   lines.push(form.opportunity || '_Not completed._');
+  appendSupportingContent('opportunity');
   lines.push('');
 
   lines.push('## Proposed Solution');
   lines.push(form.proposedSolution || '_Not completed._');
+  appendSupportingContent('proposedSolution');
   lines.push('');
 
   lines.push('## Success Criteria');
@@ -91,6 +110,7 @@ export function generateProposalMarkdown(
 
   lines.push('## Resource Estimate');
   lines.push(form.resourceEstimate || '_Not completed._');
+  appendSupportingContent('resourceEstimate');
   lines.push('');
 
   lines.push('## Open Questions');
@@ -105,6 +125,7 @@ export function generateProposalMarkdown(
 
   lines.push('## Notes');
   lines.push(form.notes || '_No notes added._');
+  appendSupportingContent('notes');
 
   return lines.join('\n');
 }

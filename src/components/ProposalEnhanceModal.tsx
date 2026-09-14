@@ -15,6 +15,7 @@ export interface ProposalAcceptedChanges {
   outOfScope: Record<string, string>;
   risks: Record<string, { risk: string; mitigation: string }>;
   openQuestions: Record<string, string>;
+  customSections: Record<string, string>;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -42,6 +43,9 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
     form.risks.map(r => [r.id, { risk: r.risk, mitigation: r.mitigation }])
   );
   const originalQuestions = Object.fromEntries(form.openQuestions.map(q => [q.id, q.question]));
+  const originalCustomSections = Object.fromEntries(
+    form.customSections.map(section => [section.id, section.content])
+  );
 
   const initChecked = () => {
     const checked: Record<string, boolean> = {};
@@ -55,6 +59,7 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
       ['in', result.inScope, originalInScope],
       ['out', result.outOfScope, originalOutOfScope],
       ['q', result.openQuestions, originalQuestions],
+      ['custom', result.customSections, originalCustomSections],
     ];
     for (const [prefix, items, originals] of listGroups) {
       for (const item of items) {
@@ -128,6 +133,7 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
       outOfScope: {},
       risks: {},
       openQuestions: {},
+      customSections: {},
     };
 
     for (const [key, improvement] of Object.entries(result.sections)) {
@@ -172,6 +178,15 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
     for (const item of result.openQuestions) {
       if (checked[`q-${item.id}`]) {
         accepted.openQuestions[item.id] = buildText(`q-${item.id}`, item.improved, item.flags);
+      }
+    }
+    for (const item of result.customSections) {
+      if (checked[`custom-${item.id}`]) {
+        accepted.customSections[item.id] = buildText(
+          `custom-${item.id}`,
+          item.improved,
+          item.flags
+        );
       }
     }
 
@@ -305,6 +320,7 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
     ...result.inScope,
     ...result.outOfScope,
     ...result.openQuestions,
+    ...result.customSections,
   ].some(
     item =>
       item.improved !==
@@ -474,6 +490,32 @@ const ProposalEnhanceModal = ({ result, form, onApply, onClose }: ProposalEnhanc
                     item.flags
                   )
                 )}
+              </div>
+            </section>
+          )}
+
+          {result.customSections.length > 0 && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                Additional Sections
+              </h3>
+              <div className="divide-y divide-gray-100">
+                {result.customSections.map(item => {
+                  const title = form.customSections.find(section => section.id === item.id)?.title;
+                  return (
+                    <div key={item.id}>
+                      <p className="text-xs text-gray-400 pt-3 font-medium">
+                        {title || 'Untitled section'}
+                      </p>
+                      {renderItem(
+                        `custom-${item.id}`,
+                        item.improved,
+                        originalCustomSections[item.id] ?? '',
+                        item.flags
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

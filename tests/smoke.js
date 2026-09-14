@@ -86,6 +86,8 @@ export default async function smoke(base) {
         resourceEstimate: "",
         openQuestions: [],
         notes: "",
+        customSections: [],
+        images: [],
       },
     },
     expectedStatus: 201,
@@ -99,6 +101,35 @@ export default async function smoke(base) {
     expectedStatus: 404,
     description: "Get missing proposal returns 404",
   });
+
+  let uploadedImageId;
+  try {
+    const imageResponse = await fetch(`${base}/api/proposals/test-proposal-1/images`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: "flowchart.png",
+        mimeType: "image/png",
+        data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mNk+M/wHwAF/gL+MxKVWQAAAABJRU5ErkJggg==",
+      }),
+    });
+    if (imageResponse.status !== 201) throw new Error(`expected 201, got ${imageResponse.status}`);
+    uploadedImageId = (await imageResponse.json()).id;
+    results.passed++;
+  } catch (err) {
+    results.failed++;
+    results.errors.push(`FAIL [Upload proposal image] — ${err.message}`);
+  }
+
+  if (uploadedImageId) {
+    await test("GET", `/api/proposals/test-proposal-1/images/${uploadedImageId}`, base, {
+      description: "Get proposal image",
+    });
+    await test("DELETE", `/api/proposals/test-proposal-1/images/${uploadedImageId}`, base, {
+      expectedStatus: 204,
+      description: "Delete proposal image",
+    });
+  }
 
   await test("POST", "/api/ai", base, {
     body: { prompt: "test", systemPrompt: "test" },

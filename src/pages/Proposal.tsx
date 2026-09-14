@@ -6,6 +6,7 @@ import SectionRow from '../components/SectionRow';
 import PasteAIResponseModal from '../components/PasteAIResponseModal';
 import AIEnhanceDropdown from '../components/AIEnhanceDropdown';
 import ProposalEnhanceModal from '../components/ProposalEnhanceModal';
+import ProposalFlexibleContent from '../components/ProposalFlexibleContent';
 import type { ProposalAcceptedChanges } from '../components/ProposalEnhanceModal';
 import { copyProposalMarkdownToClipboard } from '../utils/exportProposalMarkdown';
 import { downloadProposalDocx } from '../utils/exportProposalDocx';
@@ -46,6 +47,8 @@ const emptyForm = (): ProposalForm => ({
   resourceEstimate: '',
   openQuestions: [],
   notes: '',
+  customSections: [],
+  images: [],
 });
 
 const TIPS = [
@@ -114,6 +117,11 @@ const Proposal = () => {
           ...emptyForm(),
           ...stored,
           meta: { ...emptyMeta(), ...stored.meta },
+          customSections: (stored.customSections ?? []).map(section => ({
+            ...section,
+            parentSectionId: section.parentSectionId || 'proposedSolution',
+          })),
+          images: stored.images ?? [],
         });
         setDocId(doc.id);
         setCreatedAt(doc.createdAt);
@@ -195,7 +203,7 @@ const Proposal = () => {
 
   const handleDocx = async () => {
     await handleSave();
-    downloadProposalDocx(form, createdAt, modifiedAt);
+    downloadProposalDocx(form, createdAt, modifiedAt, docId);
   };
 
   const handleCopyPrompt = async () => {
@@ -228,6 +236,7 @@ const Proposal = () => {
         outOfScope: raw.outOfScope.map(stripItem),
         risks: raw.risks.map(r => ({ ...r, flags: r.flags.map(sf) })),
         openQuestions: raw.openQuestions.map(stripItem),
+        customSections: (raw.customSections ?? []).map(stripItem),
       };
       setEnhanceResult(result);
       setShowPasteModal(false);
@@ -244,7 +253,7 @@ const Proposal = () => {
     try {
       await handleSave();
       const result = await enhanceProposal(form);
-      setEnhanceResult(result);
+      setEnhanceResult({ ...result, customSections: result.customSections ?? [] });
     } catch (err) {
       setEnhanceError(err instanceof Error ? err.message : 'Enhancement failed');
     } finally {
@@ -294,6 +303,12 @@ const Proposal = () => {
       patch.openQuestions = form.openQuestions.map(q => {
         const improved = accepted.openQuestions[q.id];
         return improved !== undefined ? { ...q, question: improved } : q;
+      });
+    }
+    if (Object.keys(accepted.customSections).length > 0) {
+      patch.customSections = form.customSections.map(section => {
+        const improved = accepted.customSections[section.id];
+        return improved !== undefined ? { ...section, content: improved } : section;
       });
     }
 
@@ -356,6 +371,52 @@ const Proposal = () => {
     });
   const removeQuestion = (id: string) =>
     update({ openQuestions: form.openQuestions.filter(q => q.id !== id) });
+
+  const renderPrintSupportingContent = (sectionId: string) => {
+    const subsections = form.customSections.filter(
+      section => section.parentSectionId === sectionId
+    );
+    const directImages = form.images.filter(image => image.sectionId === sectionId);
+    if (subsections.length === 0 && directImages.length === 0) return null;
+    return (
+      <div className="hidden print:block space-y-4 mt-3">
+        {subsections.map(section => (
+          <div key={section.id}>
+            <h3 className="font-semibold text-gray-700 mb-1">
+              {section.title || 'Untitled Subheading'}
+            </h3>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{section.content}</p>
+            {form.images
+              .filter(image => image.sectionId === section.id)
+              .map(image => (
+                <figure key={image.id} className="mt-3">
+                  <img
+                    src={`/api/proposals/${docId}/images/${image.id}`}
+                    alt={image.caption || image.filename}
+                    className="max-h-96 max-w-full mx-auto object-contain"
+                  />
+                  <figcaption className="text-sm text-gray-500 text-center mt-1">
+                    {image.caption || image.filename}
+                  </figcaption>
+                </figure>
+              ))}
+          </div>
+        ))}
+        {directImages.map(image => (
+          <figure key={image.id}>
+            <img
+              src={`/api/proposals/${docId}/images/${image.id}`}
+              alt={image.caption || image.filename}
+              className="max-h-96 max-w-full mx-auto object-contain"
+            />
+            <figcaption className="text-sm text-gray-500 text-center mt-1">
+              {image.caption || image.filename}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    );
+  };
 
   if (loadError) {
     return (
@@ -592,6 +653,7 @@ const Proposal = () => {
             rows={5}
             className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-400 resize-none placeholder-gray-300"
           />
+          {renderPrintSupportingContent('problemStatement')}
         </section>
 
         {/* Opportunity */}
@@ -606,6 +668,7 @@ const Proposal = () => {
             rows={4}
             className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-400 resize-none placeholder-gray-300"
           />
+          {renderPrintSupportingContent('opportunity')}
         </section>
 
         {/* Proposed Solution */}
@@ -620,6 +683,7 @@ const Proposal = () => {
             rows={5}
             className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-400 resize-none placeholder-gray-300"
           />
+          {renderPrintSupportingContent('proposedSolution')}
         </section>
 
         {/* Success Criteria */}
@@ -793,6 +857,7 @@ const Proposal = () => {
             rows={3}
             className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-400 resize-none placeholder-gray-300"
           />
+          {renderPrintSupportingContent('resourceEstimate')}
         </section>
 
         {/* Open Questions */}
@@ -839,7 +904,17 @@ const Proposal = () => {
             rows={4}
             className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-400 resize-none placeholder-gray-300"
           />
+          {renderPrintSupportingContent('notes')}
         </section>
+
+        <ProposalFlexibleContent
+          proposalId={docId}
+          customSections={form.customSections}
+          images={form.images}
+          onCustomSectionsChange={customSections => update({ customSections })}
+          onImagesChange={images => update({ images })}
+          onBeforeUpload={handleSave}
+        />
       </main>
 
       {showPasteModal && (

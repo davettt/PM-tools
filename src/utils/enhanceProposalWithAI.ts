@@ -52,6 +52,12 @@ Flag: "Too vague to act on — rephrase as a specific question that needs an ans
 NOTES
 Improve grammar and clarity only. Do not flag notes as incomplete.
 
+CUSTOM SECTIONS
+Respect the author's heading and intent. Improve the content for clarity and decision usefulness without changing the section title or inventing facts.
+
+IMAGES & DIAGRAMS
+Images are not included in this text-only request. Use their filenames and captions only as context. Do not suggest edits to the image itself.
+
 RULES:
 - Never invent content the author did not provide — use [fill in] as placeholder where content is needed
 - Fix grammar, typos, and phrasing throughout
@@ -77,6 +83,7 @@ Return ONLY valid JSON with no markdown formatting and no explanation, in this e
   "outOfScope": [{"id":"...","improved":"...","flags":[]}],
   "risks": [{"id":"...","improvedRisk":"...","improvedMitigation":"...","flags":[]}],
   "openQuestions": [{"id":"...","improved":"...","flags":[]}],
+  "customSections": [{"id":"...","improved":"...","flags":[]}],
   "missingSections": ["..."]
 }`;
 
@@ -154,6 +161,31 @@ function buildPrompt(form: ProposalForm): string {
 
   lines.push('NOTES:');
   lines.push(form.notes || '(empty)');
+  lines.push('');
+
+  lines.push('CUSTOM SECTIONS:');
+  if (form.customSections.length === 0) {
+    lines.push('(none)');
+  } else {
+    for (const section of form.customSections) {
+      lines.push(
+        `[${section.id}] ${section.title || 'Untitled section'} (under ${section.parentSectionId}):`
+      );
+      lines.push(section.content || '(empty)');
+    }
+  }
+  lines.push('');
+
+  lines.push('IMAGES & DIAGRAMS (image content omitted):');
+  if (form.images.length === 0) {
+    lines.push('(none)');
+  } else {
+    for (const image of form.images) {
+      lines.push(
+        `- ${image.filename}${image.caption ? ` — ${image.caption}` : ''} (section: ${image.sectionId})`
+      );
+    }
+  }
 
   return lines.join('\n');
 }

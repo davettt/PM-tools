@@ -5,6 +5,17 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-09-14
+
+### Added
+
+- **Flexible proposal subheadings**: add optional named subsections beneath existing narrative sections, with full AI enhancement and proposal-to-PRD import support
+- **Proposal images and diagrams**: upload locally stored PNG or JPEG images, add captions, associate them with proposal sections, and include them in print and Word exports
+
+### Changed
+
+- Proposal AI copy/paste prompts now include custom subsection content and image captions while keeping image files local
+
 ## [1.9.0] - 2026-09-12
 
 ### Added

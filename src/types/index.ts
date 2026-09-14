@@ -229,6 +229,21 @@ export interface ProposalOpenQuestion {
   question: string;
 }
 
+export interface ProposalCustomSection {
+  id: string;
+  title: string;
+  content: string;
+  parentSectionId: string;
+}
+
+export interface ProposalImage {
+  id: string;
+  filename: string;
+  mimeType: 'image/png' | 'image/jpeg';
+  caption: string;
+  sectionId: string;
+}
+
 export interface ProposalTextFieldImprovement {
   improved: string;
   flags: string[];
@@ -260,6 +275,7 @@ export interface ProposalEnhancementResult {
   outOfScope: ProposalItemImprovement[];
   risks: ProposalRiskImprovement[];
   openQuestions: ProposalItemImprovement[];
+  customSections: ProposalItemImprovement[];
   missingSections: string[];
 }
 
@@ -276,4 +292,6 @@ export interface ProposalForm {
   resourceEstimate: string;
   openQuestions: ProposalOpenQuestion[];
   notes: string;
+  customSections: ProposalCustomSection[];
+  images: ProposalImage[];
 }
