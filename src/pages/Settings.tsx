@@ -41,7 +41,11 @@ const Settings = () => {
     URL.revokeObjectURL(url);
   };
 
-  const dateStamp = () => new Date().toISOString().slice(0, 10);
+  const dateStamp = () => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
 
   const handleExportPRDs = () => downloadJSON(activePRDs, `pm-tools-prds-${dateStamp()}.json`);
 

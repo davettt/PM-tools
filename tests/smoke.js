@@ -1,4 +1,28 @@
+import http from "node:http";
+
 const results = { passed: 0, failed: 0, errors: [] };
+
+// fetch() cannot override Host, so header-guard tests use node:http directly.
+function rawExpect(base, method, path, headers, expected, label) {
+  const { hostname, port } = new URL(base);
+  return new Promise((resolve) => {
+    const req = http.request({ hostname, port, path, method, headers }, (res) => {
+      res.resume();
+      if (res.statusCode === expected) results.passed++;
+      else {
+        results.failed++;
+        results.errors.push(`FAIL [${label}] — expected ${expected}, got ${res.statusCode}`);
+      }
+      resolve();
+    });
+    req.on("error", (err) => {
+      results.failed++;
+      results.errors.push(`FAIL [${label}] — ${err.message}`);
+      resolve();
+    });
+    req.end();
+  });
+}
 
 async function test(method, path, base, { body, expectedStatus, description } = {}) {
   const expected = expectedStatus || 200;
@@ -136,6 +160,40 @@ export default async function smoke(base) {
     expectedStatus: 503,
     description: "AI endpoint returns 503 without API key",
   });
+
+  // Network exposure guards (project-standards § Network Exposure)
+  await rawExpect(
+    base,
+    "GET",
+    "/api/health",
+    { Host: "evil.example:80" },
+    403,
+    "Foreign Host header refused (DNS rebinding)",
+  );
+  await rawExpect(
+    base,
+    "POST",
+    "/api/reviews",
+    { Origin: "https://evil.example" },
+    403,
+    "Cross-site POST refused",
+  );
+  await rawExpect(
+    base,
+    "DELETE",
+    "/api/reviews/test-1",
+    { Origin: "http://localhost:9999" },
+    403,
+    "Other-port localhost DELETE refused",
+  );
+  await rawExpect(
+    base,
+    "GET",
+    "/api/reviews",
+    { Origin: "https://evil.example" },
+    200,
+    "Cross-site GET still served (read blocked by browser same-origin policy)",
+  );
 
   console.log(`\n  Results: ${results.passed} passed, ${results.failed} failed\n`);
   if (results.errors.length) {

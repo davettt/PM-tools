@@ -54,7 +54,7 @@ async function run() {
   server.stderr.on("data", (d) => (serverOutput += d));
 
   try {
-    const base = `http://localhost:${TEST_PORT}`;
+    const base = `http://127.0.0.1:${TEST_PORT}`;
     await waitForServer(base);
     console.log("  Server started.\n");
 

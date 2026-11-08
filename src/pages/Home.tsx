@@ -61,7 +61,7 @@ const Home = () => {
     today.setHours(0, 0, 0, 0);
     purgeDate.setHours(0, 0, 0, 0);
     const diff = purgeDate.getTime() - today.getTime();
-    return Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+    return Math.max(1, Math.round(diff / (24 * 60 * 60 * 1000)));
   };
 
   const sortByModified = (docs: SavedDocument[]) =>

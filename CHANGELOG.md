@@ -5,6 +5,28 @@ All notable changes to PM Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Server binds to `127.0.0.1` only instead of all network interfaces
+- Requests with a Host header other than `localhost:<port>` or `127.0.0.1:<port>` are refused with 403
+- POST, PUT, PATCH, and DELETE requests with a foreign Origin header are refused with 403
+- Smoke tests cover the host and origin guards; smoke test setup targets `127.0.0.1`
+- Security headers via helmet, including a Content-Security-Policy that limits the UI to its own origin
+- Dependencies refreshed within their allowed ranges, which clears advisories in express's proxy-addr and body-parser and in concurrently's shell-quote
+
+### Changed
+
+- README marks the project as not currently maintained, possibly resumed in future.
+- CI workflow, pre-commit hook and secret-scan script synced with the shared templates; the secret scan now redacts findings
+- Type check now follows the TypeScript project references, so it checks the source files; lint skips `.claude/`
+
+### Fixed
+
+- The days-until-purge count on the home page no longer overcounts by one across a daylight-saving change
+- Export filenames use the local date instead of the UTC date, so a morning export in Australia no longer carries yesterday's date
+
 ## [1.10.0] - 2026-09-14
 
 ### Added

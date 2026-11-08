@@ -1,5 +1,7 @@
 # PM Tools
 
+> **Not currently maintained.** I'm not using or developing this app at the moment. I may pick it up again in future, so the code stays here. Until then, issues and pull requests may go unanswered.
+
 A local-first PM productivity tool for writing proposals, structured PRDs, and acceptance reviews.
 
 ## Features
@@ -180,10 +182,9 @@ MIT License with Commons Clause — free to use, fork, and modify for personal u
 
 ## Personal Project Notice
 
-This is a personal project maintained for my own use. You're welcome to:
+This is a personal project, currently on hold. You're welcome to:
 
-- Fork and customize for your own needs
-- Report bugs via [GitHub Issues](https://github.com/davettt/PM-tools/issues)
-- Reference the code for learning
+- Fork it and adapt it for your own use
+- Learn from the code
 
-I'm not actively reviewing pull requests or feature requests, as this keeps the project focused on my personal workflow.
+I may pick it up again in future. Until then I'm not reviewing issues, pull requests or feature requests.
